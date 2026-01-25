@@ -1,3 +1,8 @@
+/* 覆盖全局 button:hover 样式，去除绿色 */
+button:hover {
+  color: inherit !important;
+}
+
 .qa-btn {
   border: 1px solid rgba(255, 255, 255, 0.6);
   border-radius: 14px;
@@ -48,7 +53,7 @@
 .qa-btn--primary {
   background: rgba(255, 255, 255, 0.7);
   border-color: rgba(255, 255, 255, 0.6);
-  color: #2d3436;
+  color: #636e72;
   box-shadow: 
     0 4px 24px -1px rgba(0, 0, 0, 0.02),
     0 0 1px 0 rgba(0, 0, 0, 0.05),
@@ -57,13 +62,13 @@
 }
 
 .qa-btn--primary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.85);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.7);
+  transform: none;
   box-shadow: 
-    0 12px 32px -4px rgba(0, 0, 0, 0.08),
+    0 4px 24px -1px rgba(0, 0, 0, 0.02),
     0 0 1px 0 rgba(0, 0, 0, 0.05),
-    inset 2px 2px 5px rgba(209, 217, 230, 0.3),
-    inset -2px -2px 5px rgba(255, 255, 255, 0.9);
+    inset 2px 2px 5px rgba(209, 217, 230, 0.2),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.8);
 }
 
 .qa-btn--secondary {
@@ -77,12 +82,12 @@
 }
 
 .qa-btn--secondary:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.7);
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.5);
+  transform: none;
   box-shadow: 
-    0 12px 32px -4px rgba(0, 0, 0, 0.08),
+    0 4px 24px -1px rgba(0, 0, 0, 0.02),
     0 0 1px 0 rgba(0, 0, 0, 0.05),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
 }
 
 .qa-btn--danger {
@@ -96,11 +101,20 @@
 }
 
 .qa-btn--danger:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.8);
-  color: #2d3436;
-  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.6);
+  color: #636e72;
+  transform: none;
   box-shadow: 
-    0 12px 32px -4px rgba(0, 0, 0, 0.08),
+    0 4px 24px -1px rgba(0, 0, 0, 0.02),
     0 0 1px 0 rgba(0, 0, 0, 0.05),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+/* 英文环境下按钮字体缩小 */
+.lang-en .qa-btn {
+  font-size: 13px;
+}
+
+.lang-en .qa-btn--large {
+  font-size: 15px;
 }

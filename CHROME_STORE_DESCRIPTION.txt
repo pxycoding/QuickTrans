@@ -1,0 +1,130 @@
+QuickTrans 是一款专为 QA 工程师和开发者设计的高效工具扩展，帮助您快速处理时间戳转换和二维码操作，大幅提升测试和开发效率。
+
+【核心功能】
+
+时间戳转换
+- 自动识别 10 位（秒级）和 13 位（毫秒级）Unix 时间戳
+- 支持标准日期时间格式识别（YYYY-MM-DD HH:mm:ss、ISO 8601 等）
+- 多种格式输出：标准时间、ISO 8601、Unix 时间戳（秒/毫秒）、相对时间
+- 支持时区转换，灵活切换不同时区查看时间
+- 智能检测选中文本，一键转换，无需手动输入
+
+二维码生成
+- 选中链接自动识别，一键生成二维码
+- 支持自定义尺寸（128px / 256px / 512px）
+- 支持容错级别设置（L/M/Q/H），适应不同使用场景
+- 支持下载二维码图片，方便保存和分享
+- 支持 URL 参数编辑，快速添加常用参数
+
+二维码识别
+- 右键点击二维码图片即可快速识别
+- 自动识别内容类型（URL、邮箱、电话、文本等）
+- 识别结果可直接复制或打开链接
+- 支持多种图片格式识别
+
+【使用场景】
+
+- API 测试：快速转换接口返回的时间戳，验证时间是否正确
+- 日志分析：将日志中的时间戳转换为可读格式，快速定位问题
+- 移动端测试：生成测试链接的二维码，手机扫码快速访问
+- 数据验证：批量转换时间戳，检查数据的时间范围
+- 日常开发：快速处理时间相关数据，提升开发效率
+
+【使用方式】
+
+时间戳转换
+1. 在网页中选中时间戳（如：1704067200000）
+2. 点击出现的"转换时间"按钮
+3. 在悬浮窗中查看转换结果，支持复制任意格式
+
+二维码生成
+1. 在网页中选中链接（如：https://example.com）
+2. 点击出现的"生成二维码"按钮
+3. 在悬浮窗中查看二维码，可调整尺寸和下载
+
+二维码识别
+1. 右键点击页面上的二维码图片
+2. 选择"识别二维码"
+3. 在悬浮窗中查看识别结果，可直接复制或打开
+
+【特色亮点】
+
+- 智能识别：自动检测选中内容类型，无需手动选择功能
+- 即时操作：选中即显示操作按钮，1-2 步完成转换
+- 悬浮窗设计：结果展示不遮挡页面内容，可拖拽移动
+- 零切换：在当前页面完成所有操作，无需跳转
+- 多语言支持：支持中文和英文界面切换
+
+【技术特点】
+
+- 基于 React + TypeScript 开发，稳定可靠
+- 使用 Manifest V3，符合 Chrome 最新标准
+- 轻量级设计，不影响页面性能
+- 支持跨标签页同步窗口状态
+
+---
+
+QuickTrans is a powerful Chrome extension designed for QA engineers and developers, helping you quickly handle timestamp conversion and QR code operations, significantly improving testing and development efficiency.
+
+[Core Features]
+
+Timestamp Conversion
+- Automatically detect 10-digit (second-level) and 13-digit (millisecond-level) Unix timestamps
+- Support standard date-time format recognition (YYYY-MM-DD HH:mm:ss, ISO 8601, etc.)
+- Multiple output formats: standard time, ISO 8601, Unix timestamp (seconds/milliseconds), relative time
+- Support timezone conversion, flexibly switch between different timezones
+- Smart text detection, one-click conversion without manual input
+
+QR Code Generation
+- Automatically detect selected links and generate QR codes with one click
+- Support custom sizes (128px / 256px / 512px)
+- Support error correction levels (L/M/Q/H) for different use cases
+- Support QR code image download for easy saving and sharing
+- Support URL parameter editing, quickly add common parameters
+
+QR Code Recognition
+- Right-click on QR code images to quickly recognize
+- Automatically detect content types (URL, email, phone, text, etc.)
+- Recognition results can be directly copied or links opened
+- Support multiple image format recognition
+
+[Use Cases]
+
+- API Testing: Quickly convert timestamps returned by APIs to verify time correctness
+- Log Analysis: Convert timestamps in logs to readable format for quick problem localization
+- Mobile Testing: Generate QR codes for test links, scan with phone for quick access
+- Data Validation: Batch convert timestamps to check data time ranges
+- Daily Development: Quickly process time-related data to improve development efficiency
+
+[How to Use]
+
+Timestamp Conversion
+1. Select a timestamp on the webpage (e.g., 1704067200000)
+2. Click the "Convert Time" button that appears
+3. View conversion results in the floating window, support copying any format
+
+QR Code Generation
+1. Select a link on the webpage (e.g., https://example.com)
+2. Click the "Generate QR Code" button that appears
+3. View the QR code in the floating window, adjust size and download
+
+QR Code Recognition
+1. Right-click on a QR code image on the page
+2. Select "Recognize QR Code"
+3. View recognition results in the floating window, directly copy or open
+
+[Highlights]
+
+- Smart Detection: Automatically detect selected content type, no manual function selection needed
+- Instant Operation: Show action buttons on selection, complete conversion in 1-2 steps
+- Floating Window Design: Results display without blocking page content, draggable and movable
+- Zero Switching: Complete all operations on the current page without navigation
+- Multi-language Support: Support Chinese and English interface switching
+
+[Technical Features]
+
+- Built with React + TypeScript for stability and reliability
+- Uses Manifest V3, compliant with Chrome's latest standards
+- Lightweight design that doesn't affect page performance
+- Support cross-tab window state synchronization
+

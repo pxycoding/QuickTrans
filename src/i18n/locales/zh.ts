@@ -65,6 +65,7 @@ export const zh = {
   qrcode: {
     title: '链接 → 二维码',
     decodeTitle: '二维码识别',
+    convertTitle: '二维码转化',
     noQRCode: '暂无二维码',
     generating: '生成中...',
     decoding: '识别中...',

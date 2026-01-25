@@ -12,7 +12,7 @@ export default function App() {
   const { t, locale, setLocale } = useI18n();
 
   return (
-    <div className="popup-container">
+    <div className={`popup-container lang-${locale}`}>
       <div className="popup-header">
         <div className="popup-header-content">
           <div>

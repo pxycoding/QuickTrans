@@ -108,6 +108,28 @@
   text-transform: uppercase;
 }
 
+/* 英文环境下字体缩小 */
+.lang-en .result-item label {
+  font-size: 11px;
+}
+
+.lang-en .adjust-label {
+  font-size: 12px;
+}
+
+.lang-en .btn-reset {
+  font-size: 11px;
+  padding: 5px 10px;
+}
+
+.lang-en .adjust-header label {
+  font-size: 11px;
+}
+
+.lang-en .adjust-hint {
+  font-size: 11px;
+}
+
 .result-item .value-display {
   font-size: var(--qa-font-size-md);
 }
@@ -205,7 +227,7 @@
 }
 
 .adjust-input {
-  width: 100%;
+  width: 60px;
   padding: 10px 12px;
   font-size: var(--qa-font-size-sm);
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;

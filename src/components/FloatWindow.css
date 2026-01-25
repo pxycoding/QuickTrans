@@ -91,6 +91,8 @@
   border-radius: var(--qa-border-radius-xl) var(--qa-border-radius-xl) 0 0;
   position: relative;
   z-index: 1;
+  min-height: 48px;
+  flex-shrink: 0;
 }
 
 .qa-booster-title {
@@ -98,11 +100,23 @@
   font-size: var(--qa-font-size-lg);
   color: #1a1a1a;
   letter-spacing: -0.2px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-right: var(--qa-spacing-sm);
+}
+
+/* 英文环境下字体缩小 */
+.lang-en .qa-booster-title {
+  font-size: 15px;
 }
 
 .qa-booster-controls {
   display: flex;
   gap: var(--qa-spacing-sm);
+  flex-shrink: 0;
 }
 
 .qa-booster-btn-close,
@@ -147,10 +161,10 @@
 
 /* Minimized state styles */
 .qa-booster-float.minimized {
-  min-width: 200px;
-  width: 200px;
-  min-height: 100px;
-  height: 100px;
+  min-width: 240px;
+  width: 240px;
+  min-height: 280px;
+  height: 280px;
   border-radius: var(--qa-border-radius-xl);
   animation: fadeInUp 0.3s ease;
 }
@@ -160,13 +174,14 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100%;
-  min-height: 60px;
+  height: calc(100% - 48px);
+  min-height: 220px;
   position: relative;
   z-index: 1;
   user-select: text;
   font-size: var(--qa-font-size-sm);
   text-align: center;
+  box-sizing: border-box;
 }
 
 /* Minimized window hover effect */

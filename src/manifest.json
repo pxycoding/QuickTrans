@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "QuickTrans",
   "version": "1.0.0",
-  "description": "时间戳转换、二维码生成识别 - 提升QA工作效率",
+  "description": "QuickTrans - 时间戳转换与二维码工具 | Timestamp Converter & QR Code Tool for QA. 自动识别时间戳并转换，一键生成/识别二维码，提升测试效率。Auto-detect timestamps, convert formats, generate/scan QR codes instantly.",
   "permissions": [
     "storage",
     "activeTab",
@@ -29,12 +29,12 @@
     "default_icon": {
       "16": "icons/quickTrans_16x16.png",
       "48": "icons/quickTrans_48x48.png",
-      "128": "icons/quickTrans128x128.png"
+      "128": "icons/quickTrans_128x128.png"
     }
   },
   "icons": {
     "16": "icons/quickTrans_16x16.png",
     "48": "icons/quickTrans_48x48.png",
-    "128": "icons/quickTrans128x128.png"
+    "128": "icons/quickTrans_128x128.png"
   }
 }

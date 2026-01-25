@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { XIcon, MinimizeIcon } from './Icons';
+import { XIcon, MinimizeIcon, MaximizeIcon } from './Icons';
+import { useI18n } from '../i18n/useI18n';
 import './FloatWindow.css';
 
 export interface FloatWindowProps {
@@ -46,6 +47,7 @@ export const FloatWindow: React.FC<FloatWindowProps> = ({
   onNameCancel: _onNameCancel,
   onHeaderDoubleClick: _onHeaderDoubleClick
 }) => {
+  const { locale } = useI18n();
   const defaultPosition = initialPosition || {
     x: window.innerWidth - 400,
     y: 100
@@ -134,13 +136,13 @@ export const FloatWindow: React.FC<FloatWindowProps> = ({
   return createPortal(
     <div
       ref={windowRef}
-      className={`qa-booster-float ${isDragging ? 'dragging' : ''} ${isMinimized ? 'minimized' : ''}`}
+      className={`qa-booster-float lang-${locale} ${isDragging ? 'dragging' : ''} ${isMinimized ? 'minimized' : ''}`}
       style={{
         left: `${position.x}px`,
         top: `${position.y}px`,
-        minWidth: isMinimized ? '200px' : `${minWidth}px`,
-        minHeight: isMinimized ? '100px' : `${minHeight}px`,
-        width: isMinimized ? '200px' : 'auto'
+        minWidth: isMinimized ? '240px' : `${minWidth}px`,
+        minHeight: isMinimized ? '280px' : `${minHeight}px`,
+        width: isMinimized ? '240px' : 'auto'
       }}
     >
       <div
@@ -157,7 +159,7 @@ export const FloatWindow: React.FC<FloatWindowProps> = ({
               onClick={toggleMinimize}
               title={isMinimized ? '展开' : '最小化'}
             >
-              <MinimizeIcon size={14} />
+              {isMinimized ? <MaximizeIcon size={14} /> : <MinimizeIcon size={14} />}
             </button>
           )}
           <button

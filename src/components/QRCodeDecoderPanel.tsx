@@ -4,7 +4,7 @@ import { Button } from './Button';
 import { QRCodeDecoder } from '../converters/QRCodeDecoder';
 import { QRCodeGenerator } from '../converters/QRCodeGenerator';
 import { QRCodeOptions, QueryParamConfig } from '../types';
-import { SearchIcon, XIcon, RefreshIcon, DownloadIcon, LinkIcon, PlusIcon } from './Icons';
+import { SearchIcon, XIcon, RefreshIcon, DownloadIcon, LinkIcon, PlusIcon, GenerateIcon } from './Icons';
 import { QueryParamConfigManager } from '../utils/QueryParamConfigManager';
 import { useI18n } from '../i18n/useI18n';
 import './QRCodeDecoderPanel.css';
@@ -631,10 +631,8 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
   };
 
   // 生成默认标题
-  const defaultTitle = directUrl ? (
-    <><LinkIcon size={18} /> {t('qrcode.title')}</>
-  ) : (
-    <><SearchIcon size={18} /> {t('qrcode.decodeTitle')}</>
+  const defaultTitle = (
+    <><SearchIcon size={18} /> {t('qrcode.convertTitle')}</>
   );
 
   return (
@@ -659,19 +657,23 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
           alignItems: 'center', 
           justifyContent: 'center', 
           gap: '8px',
-          padding: '8px'
+          padding: '8px',
+          width: '100%',
+          height: '100%',
+          boxSizing: 'border-box'
         }}>
           {currentQRCode ? (
             <div style={{ 
-              width: '120px', 
-              height: '120px', 
+              width: '160px', 
+              height: '160px', 
               borderRadius: '8px', 
               overflow: 'hidden', 
               border: '1px solid rgba(255, 255, 255, 0.6)',
               background: '#fff',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}>
               <img src={currentQRCode} alt={t('qrcode.qrCodeAlt')} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
@@ -781,7 +783,7 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
                 <div className="params-config-section">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                     <label>{t('qrcode.commonParams')}</label>
-                    <button
+                    {/* <button
                       onClick={() => {
                         // 打开设置页面
                         chrome.runtime.openOptionsPage();
@@ -801,7 +803,7 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
                     >
                       <PlusIcon size={12} />
                       {t('common.settings')}
-                    </button>
+                    </button> */}
                   </div>
                   
                   {configs.length > 0 ? (
@@ -854,7 +856,7 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
                     variant="primary"
                     disabled={!editedUrl.trim() || generating}
                   >
-                    <RefreshIcon size={16} /> {t('common.generate')}
+                    <GenerateIcon size={16} /> {t('common.generate')}
                   </Button>
                   {currentQRCode && (
                     <Button

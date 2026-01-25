@@ -133,8 +133,8 @@ export const Settings: React.FC = () => {
     <div className="settings-page">
       <div className="settings-header">
         <h2>{t('settings.title')}</h2>
-        <Button onClick={() => openDialog()} variant="primary" size="large" className="add-param-btn">
-          <PlusIcon size={18} />
+        <Button onClick={() => openDialog()} variant="primary" size="small" className="add-param-btn">
+          <PlusIcon size={16} />
           <span>{t('settings.addParam')}</span>
         </Button>
       </div>

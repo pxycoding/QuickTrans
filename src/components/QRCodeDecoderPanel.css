@@ -74,6 +74,17 @@
   text-transform: uppercase;
 }
 
+/* 英文环境下字体缩小 */
+.lang-en .result-item label {
+  font-size: 11px;
+}
+
+.lang-en .url-editor label,
+.lang-en .url-params-section label,
+.lang-en .common-params-section label {
+  font-size: 11px;
+}
+
 .value-display {
   font-size: var(--qa-font-size-md);
   color: #2d3436;

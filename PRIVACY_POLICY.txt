@@ -1,0 +1,100 @@
+【Privacy Policy - 隐私政策】
+
+QuickTrans Privacy Policy
+
+Last Updated: [Current Date]
+
+QuickTrans ("we", "our", or "the extension") is committed to protecting your privacy. This Privacy Policy explains how we handle information when you use our Chrome extension.
+
+Data Collection
+QuickTrans does NOT collect, store, or transmit any personal information or user data to external servers. All data processing occurs entirely on your local device.
+
+Local Storage
+The extension uses Chrome's local storage API to store the following data locally on your device:
+- Language preference (Chinese or English)
+- Common query parameter configurations (if you choose to save them)
+- Floating window states (position, minimized state) for synchronization across browser tabs
+
+All stored data remains on your device and is never transmitted to any external server or third party.
+
+Data Processing
+All functionality is performed locally:
+- Timestamp conversion: All calculations are performed in your browser
+- QR code generation: Generated entirely on your device
+- QR code recognition: Image processing occurs locally, no images are uploaded
+
+No Tracking
+QuickTrans does NOT:
+- Track your browsing behavior
+- Collect analytics data
+- Use cookies or tracking technologies
+- Share data with third parties
+- Access your personal information beyond what is necessary for the extension's core functionality
+
+Permissions
+The extension requires the following permissions for core functionality:
+- "storage": To save your preferences locally
+- "activeTab": To access the current tab when you interact with the extension
+- "contextMenus": To provide right-click menu options
+- "scripting": To inject content scripts for text selection detection
+- "host_permissions": To work on all websites where you might need timestamp conversion or QR code tools
+
+All permissions are used solely for the extension's stated functionality and no data is collected or transmitted.
+
+Changes to This Policy
+We may update this Privacy Policy from time to time. Any changes will be reflected in the extension's update notes.
+
+Contact
+If you have any questions about this Privacy Policy, please contact us through the Chrome Web Store listing.
+
+---
+
+【中文版本 - 隐私政策】
+
+QuickTrans 隐私政策
+
+最后更新：[当前日期]
+
+QuickTrans（"我们"、"我们的"或"本扩展"）致力于保护您的隐私。本隐私政策说明了您使用我们的 Chrome 扩展时我们如何处理信息。
+
+数据收集
+QuickTrans 不会收集、存储或向外部服务器传输任何个人信息或用户数据。所有数据处理完全在您的本地设备上进行。
+
+本地存储
+本扩展使用 Chrome 的本地存储 API 在您的设备上本地存储以下数据：
+- 语言偏好（中文或英文）
+- 常用查询参数配置（如果您选择保存）
+- 悬浮窗状态（位置、最小化状态），用于在浏览器标签页之间同步
+
+所有存储的数据都保留在您的设备上，永远不会传输到任何外部服务器或第三方。
+
+数据处理
+所有功能都在本地执行：
+- 时间戳转换：所有计算都在您的浏览器中执行
+- 二维码生成：完全在您的设备上生成
+- 二维码识别：图像处理在本地进行，不会上传任何图像
+
+无追踪
+QuickTrans 不会：
+- 追踪您的浏览行为
+- 收集分析数据
+- 使用 Cookie 或追踪技术
+- 与第三方共享数据
+- 访问超出扩展核心功能所需的个人信息
+
+权限
+本扩展需要以下权限以实现核心功能：
+- "storage"：用于在本地保存您的偏好设置
+- "activeTab"：用于在您与扩展交互时访问当前标签页
+- "contextMenus"：用于提供右键菜单选项
+- "scripting"：用于注入内容脚本以检测文本选择
+- "host_permissions"：用于在您可能需要时间戳转换或二维码工具的所有网站上工作
+
+所有权限仅用于扩展声明的功能，不会收集或传输任何数据。
+
+政策变更
+我们可能会不时更新本隐私政策。任何变更都会在扩展的更新说明中反映。
+
+联系
+如果您对本隐私政策有任何疑问，请通过 Chrome 网上应用店列表联系我们。
+

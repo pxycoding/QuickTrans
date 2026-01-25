@@ -65,6 +65,7 @@ export const en = {
   qrcode: {
     title: 'Link → QR Code',
     decodeTitle: 'QR Code Recognition',
+    convertTitle: 'QR Code Conversion',
     noQRCode: 'No QR Code',
     generating: 'Generating...',
     decoding: 'Decoding...',
@@ -124,7 +125,7 @@ export const en = {
 
   // Settings page
   settings: {
-    title: 'Common Query Parameter Configuration',
+    title: 'QueryParam Configuration',
     addParam: 'Add Parameter',
     editParam: 'Edit Parameter',
     paramName: 'Parameter Name:',
