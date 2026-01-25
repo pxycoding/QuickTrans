@@ -1,0 +1,336 @@
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.settings-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #2d3436;
+  font-weight: 600;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.add-param-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 12px 20px !important;
+  font-size: 14px;
+  gap: 8px;
+}
+
+.add-param-btn span {
+  margin-left: 0;
+}
+
+/* 新的参数列表样式 */
+.params-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.params-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.param-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 
+    0 4px 24px -1px rgba(0, 0, 0, 0.02),
+    0 0 1px 0 rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  gap: 12px;
+  min-width: 0;
+}
+
+.param-item:hover {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 
+    0 12px 32px -4px rgba(0, 0, 0, 0.08),
+    0 0 1px 0 rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.param-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  gap: 8px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  word-break: break-all;
+  min-width: 0;
+}
+
+.param-key {
+  font-weight: 600;
+  color: #2d3436;
+  font-size: 14px;
+}
+
+.param-separator {
+  color: #b2bec3;
+  font-size: 14px;
+}
+
+.param-value {
+  color: #636e72;
+  font-size: 14px;
+}
+
+.param-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.no-params {
+  text-align: center;
+  padding: 48px 24px;
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px dashed rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  color: #b2bec3;
+  font-size: 14px;
+}
+
+/* 操作按钮样式 */
+.action-btn {
+  background: rgba(255, 255, 255, 0.5);
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  color: #636e72;
+  box-shadow: 
+    inset 2px 2px 5px rgba(209, 217, 230, 0.2),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.8);
+}
+
+.action-btn:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateY(-1px);
+}
+
+.edit-btn:hover {
+  color: #52c41a;
+}
+
+.delete-btn:hover {
+  color: #ff4d4f;
+}
+
+/* 配置对话框样式 */
+.config-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483647;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.config-dialog {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 24px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 
+    0 20px 60px -10px rgba(0, 0, 0, 0.15),
+    0 0 1px 0 rgba(0, 0, 0, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.config-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 12px;
+}
+
+.config-dialog-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #2d3436;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.close-btn {
+  background: rgba(255, 255, 255, 0.5);
+  border: none;
+  color: #636e72;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 8px;
+  line-height: 1;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border-radius: 12px;
+  box-shadow: 
+    inset 2px 2px 5px rgba(209, 217, 230, 0.2),
+    inset -2px -2px 5px rgba(255, 255, 255, 0.8);
+}
+
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.8);
+  color: #2d3436;
+}
+
+.config-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dialog-field label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #636e72;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.text-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  font-size: 14px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  background: rgba(255, 255, 255, 0.6);
+  color: #2d3436;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.text-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.config-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancel-btn,
+.save-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.cancel-btn {
+  background: rgba(255, 255, 255, 0.6);
+  color: #636e72;
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.8);
+  color: #2d3436;
+  box-shadow: 
+    0 6px 20px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.save-btn {
+  background: rgba(102, 126, 234, 0.9);
+  color: white;
+  box-shadow: 
+    0 4px 12px rgba(102, 126, 234, 0.3),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.save-btn:hover {
+  background: rgba(102, 126, 234, 1);
+  box-shadow: 
+    0 6px 20px rgba(102, 126, 234, 0.4),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+.save-btn:disabled {
+  background: rgba(209, 217, 230, 0.6);
+  color: #b2bec3;
+  cursor: not-allowed;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.save-btn:disabled:hover {
+  transform: none;
+}

@@ -1,0 +1,159 @@
+.popup-container {
+  width: 380px;
+  min-height: 500px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
+  background: #f4f6f9;
+  color: #2c3e50;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Add a subtle background decoration for glassmorphism to work against */
+.popup-container::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -50px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.05) 100%);
+  border-radius: 50%;
+  filter: blur(40px);
+  z-index: 0;
+}
+
+.popup-container::after {
+  content: '';
+  position: absolute;
+  bottom: -50px;
+  left: -50px;
+  width: 250px;
+  height: 250px;
+  background: radial-gradient(circle, rgba(118, 75, 162, 0.08) 0%, rgba(102, 126, 234, 0.05) 100%);
+  border-radius: 50%;
+  filter: blur(40px);
+  z-index: 0;
+}
+
+.popup-header {
+  position: relative;
+  z-index: 1;
+  padding: 32px 24px 16px;
+  background: transparent;
+  text-align: left;
+}
+
+.popup-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.popup-header-content > div:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.popup-header h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 500;
+  letter-spacing: -0.5px;
+  color: #1a1a1a;
+  white-space: nowrap;
+}
+
+.popup-header .subtitle {
+  margin: 6px 0 0 0;
+  font-size: 13px;
+  color: #8e8e93;
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.language-selector {
+  flex-shrink: 0;
+}
+
+.language-select {
+  padding: 6px 10px;
+  font-size: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.8);
+  color: #2c3e50;
+  transition: all 0.3s ease;
+  outline: none;
+  font-family: inherit;
+}
+
+.language-select:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.language-select:focus {
+  border-color: rgba(102, 126, 234, 0.5);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.popup-navigation {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  padding: 0 24px 16px;
+  gap: 16px;
+}
+
+.nav-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #8e8e93;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  outline: none;
+}
+
+.nav-btn:hover {
+  color: #1a1a1a;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.nav-btn.active {
+  color: #1a1a1a;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.popup-content {
+  position: relative;
+  z-index: 1;
+  padding: 0 24px 24px;
+  overflow-y: auto;
+  max-height: calc(500px - 140px);
+}
+
+/* 自定义滚动条 */
+.popup-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.popup-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.popup-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 3px;
+}
+
+.popup-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+

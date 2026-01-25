@@ -1,0 +1,512 @@
+.qrcode-decoder-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--qa-spacing-md);
+  width: 100%;
+}
+
+.preview-section {
+  display: flex;
+  justify-content: center;
+  padding: var(--qa-spacing-md);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  box-shadow: 
+    0 4px 24px -1px rgba(0, 0, 0, 0.02),
+    0 0 1px 0 rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.preview-section img {
+  max-width: 100%;
+  max-height: 300px;
+  height: auto;
+  border-radius: var(--qa-border-radius-md);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.loading {
+  text-align: center;
+  padding: var(--qa-spacing-lg);
+  color: #636e72;
+  font-size: var(--qa-font-size-md);
+  font-weight: 500;
+}
+
+.error-message {
+  padding: var(--qa-spacing-md);
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  color: #636e72;
+  font-size: var(--qa-font-size-md);
+  box-shadow: 
+    0 4px 24px -1px rgba(0, 0, 0, 0.02),
+    0 0 1px 0 rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  gap: var(--qa-spacing-xs);
+}
+
+.result-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--qa-spacing-md);
+}
+
+.result-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--qa-spacing-xs);
+}
+
+.result-item label {
+  font-size: var(--qa-font-size-sm);
+  color: #636e72;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.value-display {
+  font-size: var(--qa-font-size-md);
+  color: #2d3436;
+  word-break: break-all;
+  line-height: 1.5;
+}
+
+.content-box {
+  padding: var(--qa-spacing-md);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.validation-error-message {
+  display: flex;
+  align-items: center;
+  color: #636e72;
+  font-size: 12px;
+  margin: 8px 0;
+  padding: 8px 12px;
+  background-color: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  gap: var(--qa-spacing-xs);
+}
+
+.url-encoding-info {
+  margin: 8px 0;
+  padding: var(--qa-spacing-md);
+  background-color: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: var(--qa-font-size-sm);
+  color: #2d3436;
+  line-height: 1.6;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.action-buttons {
+  display: flex;
+  gap: var(--qa-spacing-sm);
+  flex-wrap: wrap;
+  margin-top: var(--qa-spacing-sm);
+}
+
+/* URL编辑和重新生成二维码的样式 */
+.url-editor-section {
+  padding-top: var(--qa-spacing-lg);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* 常用参数配置样式 */
+.params-config-section {
+  margin-top: var(--qa-spacing-md);
+  padding: var(--qa-spacing-md);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  box-shadow: 
+    0 4px 24px -1px rgba(0, 0, 0, 0.02),
+    0 0 1px 0 rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.configs-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--qa-spacing-sm);
+}
+
+.config-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--qa-spacing-sm);
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.config-item:hover {
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.config-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.config-name {
+  font-size: var(--qa-font-size-md);
+  font-weight: 600;
+  color: #2d3436;
+}
+
+.config-params {
+  font-size: var(--qa-font-size-xs);
+  color: #636e72;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.param-tag {
+  display: inline-block;
+  padding: 2px 6px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 8px;
+  margin-right: 4px;
+  margin-bottom: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.config-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.no-configs {
+  font-size: var(--qa-font-size-sm);
+  color: #8395a7;
+  text-align: center;
+  padding: var(--qa-spacing-md);
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+}
+
+/* 配置对话框样式 */
+.config-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2147483647;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.config-dialog {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(30px);
+  -webkit-backdrop-filter: blur(30px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  border-radius: 24px;
+  padding: 24px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 
+    0 20px 60px -10px rgba(0, 0, 0, 0.15),
+    0 0 1px 0 rgba(0, 0, 0, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.config-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--qa-spacing-md);
+}
+
+.config-dialog-header h3 {
+  margin: 0;
+  font-size: var(--qa-font-size-lg);
+  color: #2d3436;
+}
+
+.config-dialog-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--qa-spacing-md);
+  margin-bottom: var(--qa-spacing-lg);
+}
+
+.dialog-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dialog-field label {
+  font-size: var(--qa-font-size-sm);
+  font-weight: 600;
+  color: #636e72;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.params-input-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--qa-spacing-xs);
+}
+
+.param-input-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--qa-spacing-xs);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 12px;
+}
+
+.config-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--qa-spacing-sm);
+}
+
+.url-editor-section h3 {
+  font-size: var(--qa-font-size-lg);
+  color: #2d3436;
+  margin-bottom: var(--qa-spacing-md);
+  font-weight: 600;
+}
+
+.url-editor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--qa-spacing-xs);
+  margin-bottom: var(--qa-spacing-md);
+}
+
+.url-editor label {
+  font-size: var(--qa-font-size-sm);
+  color: #636e72;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.url-editor textarea {
+  width: 100%;
+  padding: var(--qa-spacing-md);
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: var(--qa-font-size-sm);
+  color: #2d3436;
+  line-height: 1.6;
+  resize: vertical;
+  box-shadow: 
+    0 2px 8px rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.url-editor textarea:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 
+    0 4px 16px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+.params-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--qa-spacing-xs);
+  margin-bottom: var(--qa-spacing-md);
+}
+
+.params-section label {
+  font-size: var(--qa-font-size-sm);
+  color: #636e72;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+
+.params-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--qa-spacing-sm);
+  padding: var(--qa-spacing-md);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  box-shadow: 
+    0 4px 24px -1px rgba(0, 0, 0, 0.02),
+    0 0 1px 0 rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.param-item {
+  display: flex;
+  align-items: center;
+}
+
+.param-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--qa-spacing-xs);
+  cursor: pointer;
+  font-size: var(--qa-font-size-md);
+  color: #2d3436;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  width: 100%;
+}
+
+.param-checkbox:hover {
+  color: #636e72;
+}
+
+.param-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  accent-color: #636e72;
+}
+
+.param-key {
+  font-weight: 600;
+  color: #2d3436;
+}
+
+.param-value {
+  color: #636e72;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+.regenerated-qrcode-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--qa-spacing-md);
+}
+
+.qrcode-display {
+  display: flex;
+  justify-content: center;
+  padding: var(--qa-spacing-md);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 20px;
+  box-shadow: 
+    0 4px 24px -1px rgba(0, 0, 0, 0.02),
+    0 0 1px 0 rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.qrcode-display img {
+  max-width: 100%;
+  max-height: 256px;
+  height: auto;
+  border-radius: var(--qa-border-radius-md);
+}
+
+.regenerate-action-buttons {
+  display: flex;
+  gap: var(--qa-spacing-sm);
+  flex-wrap: wrap;
+  margin-top: var(--qa-spacing-sm);
+}
+
+/* 常用参数列表样式 */
+.common-params-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--qa-spacing-sm);
+  padding: var(--qa-spacing-md);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  box-shadow: 
+    0 4px 24px -1px rgba(0, 0, 0, 0.02),
+    0 0 1px 0 rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+.common-param-item {
+  display: flex;
+  align-items: center;
+}
+
+.common-param-item .param-checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--qa-spacing-xs);
+  cursor: pointer;
+  font-size: var(--qa-font-size-sm);
+  color: #2d3436;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  width: 100%;
+}
+
+.common-param-item .param-checkbox:hover {
+  color: #636e72;
+}
+
+.common-param-item .param-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+  accent-color: #636e72;
+}
+
+.no-params {
+  text-align: center;
+  padding: var(--qa-spacing-md);
+  color: #8395a7;
+  font-size: var(--qa-font-size-sm);
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+}

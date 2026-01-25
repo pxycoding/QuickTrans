@@ -1,0 +1,40 @@
+{
+  "manifest_version": 3,
+  "name": "QuickTrans",
+  "version": "1.0.0",
+  "description": "时间戳转换、二维码生成识别 - 提升QA工作效率",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "contextMenus",
+    "scripting"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background/index.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content/index.js"],
+      "css": ["content/style.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/index.html",
+    "default_icon": {
+      "16": "icons/quickTrans_16x16.png",
+      "48": "icons/quickTrans_48x48.png",
+      "128": "icons/quickTrans128x128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/quickTrans_16x16.png",
+    "48": "icons/quickTrans_48x48.png",
+    "128": "icons/quickTrans128x128.png"
+  }
+}

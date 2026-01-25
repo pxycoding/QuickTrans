@@ -1,0 +1,144 @@
+.qrcode-viewer {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.qrcode-viewer-loading,
+.qrcode-viewer-error {
+  font-size: 11px;
+  color: #999;
+  padding: 8px;
+}
+
+.qrcode-viewer-error {
+  color: #f44336;
+}
+
+.qrcode-image {
+  width: 120px;
+  height: 120px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.qrcode-image:hover {
+  transform: scale(1.05);
+}
+
+.qrcode-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.qrcode-btn {
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 10px;
+  transition: background 0.2s;
+}
+
+.qrcode-btn:hover {
+  background: #f0f0f0;
+}
+
+.qrcode-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+
+.qrcode-modal-content {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.qrcode-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.qrcode-modal-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.qrcode-modal-close {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: #999;
+  transition: color 0.2s;
+}
+
+.qrcode-modal-close:hover {
+  color: #333;
+}
+
+.qrcode-modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.qrcode-modal-image {
+  width: 300px;
+  height: 300px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.qrcode-modal-url {
+  font-size: 11px;
+  color: #666;
+  word-break: break-all;
+  text-align: center;
+  max-width: 100%;
+}
+
+.qrcode-modal-footer {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.qrcode-modal-btn {
+  padding: 8px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.2s;
+}
+
+.qrcode-modal-btn:hover {
+  background: #f0f0f0;
+}
+
