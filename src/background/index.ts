@@ -33,44 +33,13 @@ messageListener.on(MessageType.DECODE_QRCODE, async (_payload: unknown) => {
 messageListener.start();
 
 // 监听存储变化，用于跨标签页同步
+// 注意：移除了 chrome.tabs.query({}) 的使用，改为依赖 content script 自己监听 storage 变化
+// 这样不需要 tabs 权限，只需要 activeTab 权限
 chrome.storage.onChanged.addListener((changes, namespace) => {
   if (namespace === 'local') {
-    // 监听活动窗口列表变化
-    if (changes.activeWindows) {
-      // 广播同步消息到所有标签页
-      chrome.tabs.query({}, (tabs) => {
-        tabs.forEach(tab => {
-          if (tab.id) {
-            chrome.tabs.sendMessage(tab.id, {
-              type: 'SYNC_WINDOWS',
-              payload: {}
-            }).catch(() => {
-              // 忽略错误（可能是content script还未加载）
-            });
-          }
-        });
-      });
-    }
-    
-    // 监听窗口状态变化（最小化/展开）
-    for (const key in changes) {
-      if (key.startsWith('qrCodeWindowState_')) {
-        // 窗口状态变化会通过activeWindows同步自动处理
-        chrome.tabs.query({}, (tabs) => {
-          tabs.forEach(tab => {
-            if (tab.id) {
-              chrome.tabs.sendMessage(tab.id, {
-                type: 'SYNC_WINDOWS',
-                payload: {}
-              }).catch(() => {
-                // 忽略错误
-              });
-            }
-          });
-        });
-        break;
-      }
-    }
+    // Content scripts 会自己监听 storage.onChanged 事件来同步窗口状态
+    // 这里不需要主动广播消息，因为每个 content script 都会收到 storage 变化通知
+    // 移除了 chrome.tabs.query({}) 调用，避免需要 tabs 权限
   }
 });
 
