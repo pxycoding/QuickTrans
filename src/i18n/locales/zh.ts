@@ -36,12 +36,17 @@ export const zh = {
     title: 'QuickTrans',
     subtitle: '时间戳转换 · 二维码生成识别',
     features: '功能介绍',
-    settings: '常用参数配置'
+    settings: '常用参数配置',
+    tools: '工具列表'
   },
 
   // 时间戳转换
   timestamp: {
     title: '时间戳转换',
+    inputLabel: '输入时间戳或日期时间',
+    inputPlaceholder: '例如: 1704067200 或 2024-01-01 00:00:00',
+    convert: '转换',
+    emptyInput: '请输入时间戳或日期时间',
     originalValue: '原始值:',
     standardTime: '标准时间:',
     iso8601: 'ISO 8601:',

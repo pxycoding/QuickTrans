@@ -85,24 +85,27 @@ chrome.tabs.onActivated.addListener((activeInfo) => {
 
 // 创建右键菜单
 chrome.runtime.onInstalled.addListener(async () => {
+  // 先清除所有现有菜单项，确保没有遗留的父菜单
+  await chrome.contextMenus.removeAll();
+  
   const locale = getLocale();
   const translations = getTranslations(locale);
   
-  // 二维码识别菜单
+  // 二维码识别菜单（一级菜单）
   chrome.contextMenus.create({
     id: 'decode-qrcode',
     title: translations.contextMenu.decodeQRCode,
     contexts: ['image']
   });
   
-  // 时间戳转换菜单
+  // 时间戳转换菜单（一级菜单）
   chrome.contextMenus.create({
     id: 'convert-timestamp',
     title: translations.contextMenu.convertTimestamp,
     contexts: ['selection']
   });
   
-  // 生成二维码菜单
+  // 生成二维码菜单（一级菜单）
   chrome.contextMenus.create({
     id: 'generate-qrcode',
     title: translations.contextMenu.generateQRCode,
@@ -143,7 +146,6 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.type === 'UPDATE_CONTEXT_MENU' && sender.tab) {
     const { isTimestamp, isURL } = message.payload;
-    console.log('[Background] 更新右键菜单:', { isTimestamp, isURL });
     
     // 根据内容类型更新菜单可见性
     if (isTimestamp) {
@@ -180,6 +182,3 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   }
   return true;
 });
-
-console.log('QA Booster Background Service Worker loaded');
-

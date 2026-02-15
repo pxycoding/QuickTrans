@@ -36,6 +36,14 @@ export const TimestampPanel: React.FC<TimestampPanelProps> = ({
     minute: 0,
     second: 0
   });
+  const [inputValue, setInputValue] = useState(value || '');
+
+  // 当外部 value 变化时，同步到 inputValue
+  useEffect(() => {
+    if (value) {
+      setInputValue(value);
+    }
+  }, [value]);
 
   useEffect(() => {
     console.log('[TimestampPanel] 开始转换，value:', value, 'type:', type);
@@ -149,22 +157,99 @@ export const TimestampPanel: React.FC<TimestampPanelProps> = ({
     copyToClipboard(allText, 'all');
   };
 
+  const handleInputChange = (newValue: string) => {
+    setInputValue(newValue);
+  };
+
+  const handleInputConvert = async () => {
+    if (!inputValue.trim()) {
+      setError(t('timestamp.emptyInput'));
+      return;
+    }
+
+    try {
+      // 检测输入类型
+      const { ContentDetector } = await import('../converters/ContentDetector');
+      const detectionResult = ContentDetector.detect(inputValue.trim());
+      
+      if (detectionResult.type === ContentType.UNKNOWN || detectionResult.confidence < 0.5) {
+        setError(t('errors.unrecognizedTimestamp'));
+        return;
+      }
+
+      // 执行转换
+      let convertedResult;
+      if (detectionResult.type === ContentType.TIMESTAMP_SECOND ||
+          detectionResult.type === ContentType.TIMESTAMP_MILLISECOND) {
+        convertedResult = TimestampConverter.fromTimestamp(parseInt(inputValue.trim()), { includeRelative: false });
+      } else {
+        convertedResult = TimestampConverter.toTimestamp(inputValue.trim(), { includeRelative: false });
+      }
+
+      setResult(convertedResult);
+      setCurrentTimestamp(convertedResult.unixMs);
+      setOriginalTimestamp(convertedResult.unixMs);
+      setTimeAdjustments({ year: 0, month: 0, day: 0, hour: 0, minute: 0, second: 0 });
+      setError('');
+    } catch (err) {
+      console.error('[TimestampPanel] 转换失败:', err);
+      setError(err instanceof Error ? err.message : t('timestamp.convertFailed'));
+      setResult(null);
+      setCurrentTimestamp(null);
+    }
+  };
+
   return (
     <FloatWindow
       title={<><CalendarIcon size={18} /> {t('timestamp.title')}</>}
       onClose={onClose}
       windowId={windowId}
+      minWidth={400}
+      minHeight={600}
     >
       <div className="timestamp-panel">
-        <div className="original-value">
-          <label>{t('timestamp.originalValue')}</label>
-          <div className="value-display">{value}</div>
-        </div>
-
-        {error && (
-          <div className="error-message">
-            <XIcon size={16} /> {error}
+        {/* 当没有值或类型为UNKNOWN时，显示输入框 */}
+        {(!value || type === ContentType.UNKNOWN) && !result ? (
+          <div className="input-section">
+            <label>{t('timestamp.inputLabel')}</label>
+            <div className="input-group">
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => handleInputChange(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleInputConvert();
+                  }
+                }}
+                placeholder={t('timestamp.inputPlaceholder')}
+                className="timestamp-input"
+              />
+              <Button onClick={handleInputConvert} variant="primary">
+                {t('timestamp.convert')}
+              </Button>
+            </div>
+            {error && (
+              <div className="error-message">
+                <XIcon size={16} /> {error}
+              </div>
+            )}
           </div>
+        ) : (
+          <>
+            {(value || inputValue) && (
+              <div className="original-value">
+                <label>{t('timestamp.originalValue')}</label>
+                <div className="value-display">{value || inputValue}</div>
+              </div>
+            )}
+
+            {error && (
+              <div className="error-message">
+                <XIcon size={16} /> {error}
+              </div>
+            )}
+          </>
         )}
 
         {result && (

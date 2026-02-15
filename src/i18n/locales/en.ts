@@ -36,12 +36,17 @@ export const en = {
     title: 'QuickTrans',
     subtitle: 'Timestamp Conversion · QR Code Generation & Recognition',
     features: 'Features',
-    settings: 'Query Parameter Config'
+    settings: 'Query Parameter Config',
+    tools: 'Tools'
   },
 
   // Timestamp conversion
   timestamp: {
     title: 'Timestamp Conversion',
+    inputLabel: 'Input timestamp or date time',
+    inputPlaceholder: 'e.g.: 1704067200 or 2024-01-01 00:00:00',
+    convert: 'Convert',
+    emptyInput: 'Please input timestamp or date time',
     originalValue: 'Original Value:',
     standardTime: 'Standard Time:',
     iso8601: 'ISO 8601:',

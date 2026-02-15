@@ -33,12 +33,13 @@
     0 1px 2px 0 rgba(0, 0, 0, 0.2),
     inset 0 0 0 1px rgba(255, 255, 255, 0.5);
   animation: fadeInUp 0.3s ease;
-  cursor: move;
   user-select: none;
   font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', sans-serif;
   font-size: var(--qa-font-size-md);
   color: #2c3e50;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Add background decoration for float windows */
@@ -95,17 +96,27 @@
   flex-shrink: 0;
 }
 
+.qa-booster-title-wrapper {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  gap: 6px;
+}
+
 .qa-booster-title {
   font-weight: 600;
   font-size: var(--qa-font-size-lg);
   color: #1a1a1a;
   letter-spacing: -0.2px;
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  margin-right: var(--qa-spacing-sm);
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
 }
 
 /* 英文环境下字体缩小 */
@@ -150,13 +161,65 @@
     inset 0 0 0 1px rgba(255, 255, 255, 0.9);
 }
 
+.qa-booster-btn-edit {
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  opacity: 0.5;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #57606f;
+  line-height: 1;
+}
+
+.qa-booster-btn-edit:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 
+    0 2px 8px -1px rgba(0, 0, 0, 0.08),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.8);
+  color: #2c3e50;
+}
+
+.qa-booster-title-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(24, 144, 255, 0.5);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: var(--qa-font-size-lg);
+  font-weight: 600;
+  color: #1a1a1a;
+  font-family: inherit;
+  outline: none;
+  min-width: 0;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+}
+
+.qa-booster-title-input:focus {
+  border-color: var(--qa-primary-color);
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
 .qa-booster-content {
   padding: var(--qa-spacing-md);
-  max-height: 600px;
+  flex: 1;
   overflow-y: auto;
   user-select: text;
+  cursor: default;
   position: relative;
   z-index: 1;
+  box-sizing: border-box;
+  min-height: 0;
 }
 
 /* Minimized state styles */
@@ -174,8 +237,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  height: calc(100% - 48px);
-  min-height: 220px;
+  flex: 1;
+  min-height: 0;
   position: relative;
   z-index: 1;
   user-select: text;
@@ -208,6 +271,63 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* 调整大小手柄 */
+.qa-booster-resize-handle {
+  position: absolute;
+  z-index: 10;
+  background: transparent;
+  user-select: none;
+}
+
+.qa-booster-resize-handle-bottom-left {
+  bottom: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+}
+
+.qa-booster-resize-handle-bottom-right {
+  bottom: 0;
+  right: 0;
+  width: 20px;
+  height: 20px;
+  cursor: nwse-resize;
+}
+
+/* 调整大小手柄的视觉指示器 */
+.qa-booster-resize-handle::after {
+  content: '';
+  position: absolute;
+  bottom: 2px;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  opacity: 0.4;
+  transition: opacity 0.2s ease;
+}
+
+.qa-booster-resize-handle-bottom-left::after {
+  left: 2px;
+  border-width: 0 0 8px 8px;
+  border-color: transparent transparent #57606f transparent;
+}
+
+.qa-booster-resize-handle-bottom-right::after {
+  right: 2px;
+  border-width: 0 0 8px 8px;
+  border-color: transparent transparent #57606f transparent;
+}
+
+.qa-booster-resize-handle:hover::after {
+  opacity: 0.8;
+}
+
+/* 调整大小时的状态 */
+.qa-booster-float:has(.qa-booster-resize-handle:active) {
+  user-select: none;
 }
 
 @media (max-width: 768px) {

@@ -5,6 +5,95 @@
   width: 100%;
 }
 
+/* 模式切换按钮 */
+.mode-switcher {
+  display: flex;
+  gap: var(--qa-spacing-xs);
+  padding: var(--qa-spacing-xs);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--qa-border-radius-md);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.mode-switch-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--qa-spacing-xs);
+  padding: var(--qa-spacing-sm) var(--qa-spacing-md);
+  border: none;
+  border-radius: var(--qa-border-radius-sm);
+  background: transparent;
+  color: #57606f;
+  font-size: var(--qa-font-size-md);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-switch-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+  color: #2c3e50;
+}
+
+.mode-switch-btn.active {
+  background: rgba(139, 92, 246, 0.1);
+  color: #8b5cf6;
+  font-weight: 600;
+}
+
+.mode-switch-btn.active:hover {
+  background: rgba(139, 92, 246, 0.15);
+}
+
+.mode-switch-btn.active svg {
+  stroke: #8b5cf6;
+  color: #8b5cf6;
+}
+
+/* 解码模式 */
+.decode-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--qa-spacing-md);
+}
+
+.decode-image-upload {
+  margin-bottom: var(--qa-spacing-sm);
+}
+
+.decode-result {
+  padding: var(--qa-spacing-md);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: var(--qa-border-radius-md);
+  box-shadow: 
+    0 4px 24px -1px rgba(0, 0, 0, 0.02),
+    0 0 1px 0 rgba(0, 0, 0, 0.05),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.decode-result-label {
+  font-size: var(--qa-font-size-sm);
+  color: #636e72;
+  font-weight: 600;
+  margin-bottom: var(--qa-spacing-xs);
+}
+
+.decode-result-content {
+  font-size: var(--qa-font-size-md);
+  color: #2d3436;
+  word-break: break-all;
+  line-height: 1.5;
+  padding: var(--qa-spacing-sm);
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: var(--qa-border-radius-sm);
+}
+
 .preview-section {
   display: flex;
   justify-content: center;
@@ -130,6 +219,10 @@
   box-shadow: 
     0 2px 8px rgba(0, 0, 0, 0.05),
     inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-break: break-all;
+  overflow: hidden;
 }
 
 .action-buttons {
@@ -141,8 +234,10 @@
 
 /* URL编辑和重新生成二维码的样式 */
 .url-editor-section {
+  padding: var(--qa-spacing-md);
   padding-top: var(--qa-spacing-lg);
   border-top: 1px solid rgba(255, 255, 255, 0.3);
+  box-sizing: border-box;
 }
 
 /* 常用参数配置样式 */
@@ -351,6 +446,12 @@
   color: #2d3436;
   line-height: 1.6;
   resize: vertical;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  overflow-y: auto;
+  max-height: 200px;
+  box-sizing: border-box;
   box-shadow: 
     0 2px 8px rgba(0, 0, 0, 0.05),
     inset 0 0 0 1px rgba(255, 255, 255, 0.5);

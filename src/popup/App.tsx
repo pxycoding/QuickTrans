@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Home } from './pages/Home';
 import { Settings } from './pages/Settings';
+import { Tools } from './pages/Tools';
 import { useI18n } from '../i18n/useI18n';
 import type { Locale } from '../i18n/useI18n';
 import './App.css';
 
-type PageType = 'home' | 'settings';
+type PageType = 'home' | 'tools' | 'settings';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<PageType>('home');
+  const [currentPage, setCurrentPage] = useState<PageType>('tools');
   const { t, locale, setLocale } = useI18n();
 
   return (
@@ -33,11 +34,12 @@ export default function App() {
       </div>
       
       <div className="popup-navigation">
+       
         <button
-          className={`nav-btn ${currentPage === 'home' ? 'active' : ''}`}
-          onClick={() => setCurrentPage('home')}
+          className={`nav-btn ${currentPage === 'tools' ? 'active' : ''}`}
+          onClick={() => setCurrentPage('tools')}
         >
-          {t('app.features')}
+          {t('app.tools')}
         </button>
         <button
           className={`nav-btn ${currentPage === 'settings' ? 'active' : ''}`}
@@ -45,10 +47,18 @@ export default function App() {
         >
           {t('app.settings')}
         </button>
+        <button
+          className={`nav-btn ${currentPage === 'home' ? 'active' : ''}`}
+          onClick={() => setCurrentPage('home')}
+        >
+          {t('app.features')}
+        </button>
       </div>
       
       <div className="popup-content">
-        {currentPage === 'home' ? <Home /> : <Settings />}
+        {currentPage === 'home' && <Home />}
+        {currentPage === 'tools' && <Tools />}
+        {currentPage === 'settings' && <Settings />}
       </div>
     </div>
   );

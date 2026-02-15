@@ -206,6 +206,14 @@ if (chrome?.runtime?.onMessage) {
     const { selectionText } = message.payload;
     console.log('[QA Booster] 处理时间戳转换请求:', { selectionText });
     
+    // 如果为空，直接打开面板让用户输入
+    if (!selectionText || !selectionText.trim()) {
+      console.log('[QA Booster] 打开空的时间戳转换面板，让用户输入');
+      floatWindowManager.showTimestampPanel('', ContentType.UNKNOWN).catch(console.error);
+      sendResponse({ success: true });
+      return true;
+    }
+    
     // 检测选择的文本类型
     import('../converters/ContentDetector').then(({ ContentDetector }) => {
       const detectionResult = ContentDetector.detect(selectionText);
@@ -228,6 +236,14 @@ if (chrome?.runtime?.onMessage) {
   } else if (message.type === 'GENERATE_QRCODE') {
     const { selectionText } = message.payload;
     console.log('[QA Booster] 处理生成二维码请求:', { selectionText });
+    
+    // 如果为空，直接打开面板让用户输入
+    if (!selectionText || !selectionText.trim()) {
+      console.log('[QA Booster] 打开空的二维码生成面板，让用户输入');
+      floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, '').catch(console.error);
+      sendResponse({ success: true });
+      return true;
+    }
     
     // 检测选择的文本类型
       import('../converters/ContentDetector').then(({ ContentDetector }) => {

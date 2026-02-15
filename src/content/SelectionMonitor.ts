@@ -10,12 +10,10 @@ export class SelectionMonitor {
   private actionButton: HTMLElement | null = null;
 
   constructor() {
-    console.log('[SelectionMonitor] 构造函数调用');
     this.init();
   }
 
   private init() {
-    console.log('[SelectionMonitor] 初始化事件监听器');
     // 监听选择变化
     document.addEventListener('selectionchange', debounce(() => {
       this.handleSelectionChange();
@@ -27,13 +25,11 @@ export class SelectionMonitor {
         this.hideActionButton();
       }
     });
-    console.log('[SelectionMonitor] 事件监听器注册完成');
   }
 
   private handleSelectionChange() {
     const selection = window.getSelection();
     const text = selection?.toString().trim();
-    console.log('[SelectionMonitor] 选择变化，文本:', text);
 
     if (!text || text.length === 0) {
       this.hideActionButton();
@@ -41,9 +37,7 @@ export class SelectionMonitor {
     }
 
     // 检测内容类型
-    console.log('[SelectionMonitor] 开始检测内容类型...');
     const result = ContentDetector.detect(text);
-    console.log('[SelectionMonitor] 检测结果:', result);
 
     // URL类型的悬浮按钮已移除，改由右键菜单触发
     this.hideActionButton();
@@ -53,8 +47,6 @@ export class SelectionMonitor {
                        result.type === ContentType.TIMESTAMP_MILLISECOND ||
                        result.type === ContentType.DATETIME;
     const isURL = result.type === ContentType.URL;
-    
-    console.log('[SelectionMonitor] 发送右键菜单更新消息:', { isTimestamp, isURL });
     
     // 检查扩展上下文是否有效
     try {

@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { FloatWindow } from './FloatWindow';
 import { Button } from './Button';
+import { ImageUpload } from './ImageUpload';
 import { QRCodeDecoder } from '../converters/QRCodeDecoder';
 import { QRCodeGenerator } from '../converters/QRCodeGenerator';
 import { QRCodeOptions, QueryParamConfig } from '../types';
-import { SearchIcon, XIcon, RefreshIcon, DownloadIcon, LinkIcon, PlusIcon, GenerateIcon } from './Icons';
+import { DecodeIcon, XIcon, RefreshIcon, DownloadIcon, LinkIcon, PlusIcon, GenerateIcon } from './Icons';
 import { QueryParamConfigManager } from '../utils/QueryParamConfigManager';
 import { useI18n } from '../i18n/useI18n';
 import './QRCodeDecoderPanel.css';
@@ -57,6 +58,11 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
   const [isMinimized, setIsMinimized] = useState(initialMinimized); // 窗口最小化状态
   const [windowName, setWindowName] = useState<string>(''); // 窗口名称
   const [isEditingName, setIsEditingName] = useState(false); // 是否正在编辑名称
+  // 如果有传入的图片，默认使用解码模式，否则使用生成模式
+  const [mode, setMode] = useState<'decode' | 'generate'>(
+    (imageUrl || imageFile) ? 'decode' : 'generate'
+  );
+  const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null); // 上传的图片文件
   
   // 使用useMemo包装options对象，避免依赖数组每次渲染都变化
   const options = useMemo<QRCodeOptions>(() => ({
@@ -64,9 +70,20 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
     errorCorrectionLevel: 'M'
   }), []);
 
+  // 处理图片上传
+  const handleImageUpload = useCallback((file: File) => {
+    setUploadedImageFile(file);
+    setMode('decode');
+    // 触发解码
+  }, []);
+
   React.useEffect(() => {
     const decode = async () => {
-      if (!imageUrl && !imageFile) return;
+      // 优先使用上传的文件，然后是传入的 imageFile，最后是 imageUrl
+      const fileToDecode = uploadedImageFile || imageFile;
+      const urlToDecode = !fileToDecode ? imageUrl : undefined;
+
+      if (!fileToDecode && !urlToDecode) return;
 
       setLoading(true);
       setError('');
@@ -74,14 +91,14 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
 
       try {
         let decodeResult;
-        if (imageFile) {
+        if (fileToDecode) {
           // 创建预览URL
-          const url = URL.createObjectURL(imageFile);
+          const url = URL.createObjectURL(fileToDecode);
           setPreviewUrl(url);
-          decodeResult = await QRCodeDecoder.decodeFromFile(imageFile);
-        } else if (imageUrl) {
-          setPreviewUrl(imageUrl);
-          decodeResult = await QRCodeDecoder.decodeFromURL(imageUrl);
+          decodeResult = await QRCodeDecoder.decodeFromFile(fileToDecode);
+        } else if (urlToDecode) {
+          setPreviewUrl(urlToDecode);
+          decodeResult = await QRCodeDecoder.decodeFromURL(urlToDecode);
         }
 
         if (decodeResult?.success) {
@@ -92,7 +109,7 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
             chrome.storage.local.set({
               [`qrCodeWindowData_${windowId}`]: {
                 url: null,
-                imageUrl: imageUrl,
+                imageUrl: urlToDecode,
                 imageFile: null // 文件对象无法直接存储
               }
             });
@@ -108,7 +125,7 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
     };
 
     decode();
-  }, [imageUrl, imageFile]);
+  }, [uploadedImageFile, imageUrl, imageFile, windowId, t]);
 
   React.useEffect(() => {
     return () => {
@@ -352,41 +369,48 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
 
   // 当直接提供URL时，解析并生成二维码
   useEffect(() => {
-    if (directUrl && directUrl.trim()) {
-      // 直接解析URL并生成二维码，不设置result对象
-      const processDirectUrl = async () => {
-        const url = directUrl.trim();
-        if (validateUrl(url)) {
-          setInitialUrl(url);
-          setEditedUrl(url);
-          parseUrlParams(url);
-          
-          setGenerating(true);
-          try {
-            const qrResult = await QRCodeGenerator.generate(url, options);
-            setCurrentQRCode(qrResult.dataURL);
+    // 如果 directUrl 存在（包括空字符串），初始化输入框
+    if (directUrl !== undefined) {
+      if (directUrl && directUrl.trim()) {
+        // 直接解析URL并生成二维码，不设置result对象
+        const processDirectUrl = async () => {
+          const url = directUrl.trim();
+          if (validateUrl(url)) {
+            setInitialUrl(url);
+            setEditedUrl(url);
+            parseUrlParams(url);
             
-            // 保存窗口数据（基于窗口ID）
-            if (windowId) {
-              chrome.storage.local.set({
-                [`qrCodeWindowData_${windowId}`]: {
-                  url: url,
-                  imageUrl: imageUrl,
-                  imageFile: null // 文件对象无法直接存储
-                }
-              });
+            setGenerating(true);
+            try {
+              const qrResult = await QRCodeGenerator.generate(url, options);
+              setCurrentQRCode(qrResult.dataURL);
+              
+              // 保存窗口数据（基于窗口ID）
+              if (windowId) {
+                chrome.storage.local.set({
+                  [`qrCodeWindowData_${windowId}`]: {
+                    url: url,
+                    imageUrl: imageUrl,
+                    imageFile: null // 文件对象无法直接存储
+                  }
+                });
+              }
+            } catch (error) {
+              console.error('URL处理或二维码生成失败:', error);
+            } finally {
+              setGenerating(false);
             }
-          } catch (error) {
-            console.error('URL处理或二维码生成失败:', error);
-          } finally {
-            setGenerating(false);
           }
-        }
-      };
-      
-      processDirectUrl();
+        };
+        
+        processDirectUrl();
+      } else {
+        // 如果 directUrl 为空字符串，初始化空输入框
+        setEditedUrl('');
+        setInitialUrl('');
+      }
     }
-  }, [directUrl, validateUrl, parseUrlParams, options, imageUrl]);
+  }, [directUrl, validateUrl, parseUrlParams, options, imageUrl, windowId]);
 
   // 当窗口关闭时清除存储（基于窗口ID）
   useEffect(() => {
@@ -632,7 +656,7 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
 
   // 生成默认标题
   const defaultTitle = (
-    <><SearchIcon size={18} /> {t('qrcode.convertTitle')}</>
+    <><GenerateIcon size={18} /> {t('qrcode.convertTitle')}</>
   );
 
   return (
@@ -643,6 +667,7 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
       onExpand={handleExpand}
       minimized={isMinimized}
       minWidth={400}
+      minHeight={600}
       windowId={windowId}
       windowName={windowName}
       isEditingName={isEditingName}
@@ -684,11 +709,21 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
       }
     >
       <div className="qrcode-decoder-panel">
-        {/* {previewUrl && (
-          <div className="preview-section">
-            <img src={previewUrl} alt="QR Code Preview" />
-          </div>
-        )} */}
+        {/* 模式切换按钮 */}
+        <div className="mode-switcher">
+        <button
+            className={`mode-switch-btn ${mode === 'generate' ? 'active' : ''}`}
+            onClick={() => setMode('generate')}
+          >
+            <GenerateIcon size={16} /> 生成
+          </button>
+          <button
+            className={`mode-switch-btn ${mode === 'decode' ? 'active' : ''}`}
+            onClick={() => setMode('decode')}
+          >
+            <DecodeIcon size={16} /> 解码
+          </button>
+        </div>
 
         {loading && (
           <div className="loading">{t('qrcode.decoding')}</div>
@@ -700,21 +735,61 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
           </div>
         )}
 
-        {/* 当有直接URL或识别成功时显示内容 */}
-        {((directUrl && directUrl.trim()) || (result && result.success)) && (
+        {/* 解码模式 */}
+        {mode === 'decode' && (
+          <div className="decode-section">
+            <ImageUpload
+              onImageSelect={handleImageUpload}
+              className="decode-image-upload"
+            />
+            {previewUrl && (
+              <div className="preview-section">
+                <img src={previewUrl} alt="QR Code Preview" />
+              </div>
+            )}
+            {result && result.success && (
+              <div className="decode-result">
+                <div className="decode-result-label">解码结果：</div>
+                <div className="decode-result-content">{result.content}</div>
+                {result.type === 'url' && (
+                  <Button
+                    onClick={() => {
+                      setMode('generate');
+                      const decodedContent = result.content || '';
+                      setEditedUrl(decodedContent);
+                      setInitialUrl(decodedContent);
+                      // 解析URL参数
+                      parseUrlParams(decodedContent);
+                    }}
+                    variant="primary"
+                    style={{ marginTop: '12px' }}
+                  >
+                    <LinkIcon size={16} /> 使用此链接生成二维码
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 生成模式 */}
+        {mode === 'generate' && (
           <>
-            {/* 编辑链接和重新生成二维码的功能，仅当识别结果是URL或有直接URL时显示 */}
-            {((result && result.type === 'url') || (directUrl && directUrl.trim())) && (
-              <div className="url-editor-section">
-                <div className="url-editor">
-                  <label>{t('qrcode.linkLabel')}</label>
-                  <textarea
-                    value={editedUrl}
-                    onChange={handleUrlChange}
-                    rows={3}
-                    placeholder={t('qrcode.editLink')}
-                  />
-                </div>
+            {/* 当有直接URL、识别成功、或者没有图片时显示内容 */}
+            {((directUrl !== undefined) || (result && result.success) || (!imageUrl && !imageFile && !uploadedImageFile)) && (
+              <>
+                {/* 编辑链接和重新生成二维码的功能，当识别结果是URL、有直接URL、或者没有图片时显示 */}
+                {((result && result.type === 'url') || (directUrl !== undefined) || (!imageUrl && !imageFile && !uploadedImageFile)) && (
+                  <div className="url-editor-section">
+                    <div className="url-editor">
+                      <label>{t('qrcode.linkLabel')}</label>
+                      <textarea
+                        value={editedUrl}
+                        onChange={handleUrlChange}
+                        rows={3}
+                        placeholder={t('qrcode.editLink')}
+                      />
+                    </div>
                 
                 {/* 验证错误提示 */}
                 {validationError && (
@@ -732,7 +807,11 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
                       backgroundColor: 'rgba(255, 255, 255, 0.5)', 
                       borderRadius: '4px', 
                       fontSize: '12px',
-                      wordBreak: 'break-all'
+                      wordBreak: 'break-all',
+                      overflowWrap: 'break-word',
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                      whiteSpace: 'normal'
                     }}>
                       {decodedUrl}
                     </div>
@@ -879,7 +958,7 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
             )}
           </>
         )}
-
+        </>)}
       </div>
     </FloatWindow>
   );
