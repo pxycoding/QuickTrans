@@ -17,6 +17,7 @@ interface QRCodeDecoderPanelProps {
   onClose: () => void;
   minimized?: boolean;
   windowId?: string; // 窗口唯一ID，用于跨tab同步
+  showModeSwitcher?: boolean; // 是否显示模式切换按钮，默认true（popup进入时显示，右键菜单进入时不显示）
 }
 
 interface QueryParam {
@@ -37,7 +38,8 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
   url: directUrl,
   onClose,
   minimized: initialMinimized = false,
-  windowId
+  windowId,
+  showModeSwitcher = true
 }) => {
   const { t } = useI18n();
   const [result, setResult] = useState<QRCodeResult | null>(null);
@@ -63,6 +65,11 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
     (imageUrl || imageFile) ? 'decode' : 'generate'
   );
   const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null); // 上传的图片文件
+  
+  // 调试：打印 showModeSwitcher 的值
+  useEffect(() => {
+    console.log('[QRCodeDecoderPanel] showModeSwitcher:', showModeSwitcher);
+  }, [showModeSwitcher]);
   
   // 使用useMemo包装options对象，避免依赖数组每次渲染都变化
   const options = useMemo<QRCodeOptions>(() => ({
@@ -709,21 +716,23 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
       }
     >
       <div className="qrcode-decoder-panel">
-        {/* 模式切换按钮 */}
-        <div className="mode-switcher">
-        <button
-            className={`mode-switch-btn ${mode === 'generate' ? 'active' : ''}`}
-            onClick={() => setMode('generate')}
-          >
-            <GenerateIcon size={16} /> 生成
-          </button>
-          <button
-            className={`mode-switch-btn ${mode === 'decode' ? 'active' : ''}`}
-            onClick={() => setMode('decode')}
-          >
-            <DecodeIcon size={16} /> 解码
-          </button>
-        </div>
+        {/* 模式切换按钮 - 只在popup进入时显示 */}
+        {showModeSwitcher && (
+          <div className="mode-switcher">
+            <button
+              className={`mode-switch-btn ${mode === 'generate' ? 'active' : ''}`}
+              onClick={() => setMode('generate')}
+            >
+              <GenerateIcon size={16} /> 生成
+            </button>
+            <button
+              className={`mode-switch-btn ${mode === 'decode' ? 'active' : ''}`}
+              onClick={() => setMode('decode')}
+            >
+              <DecodeIcon size={16} /> 解码
+            </button>
+          </div>
+        )}
 
         {loading && (
           <div className="loading">{t('qrcode.decoding')}</div>

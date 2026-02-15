@@ -128,3 +128,4 @@ QR Code Recognition
 - Lightweight design that doesn't affect page performance
 - Support cross-tab window state synchronization
 
+

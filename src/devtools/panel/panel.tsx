@@ -21,3 +21,5 @@ initI18n().then(() => {
   console.error('Failed to initialize DevTools panel:', err);
 });
 
+
+

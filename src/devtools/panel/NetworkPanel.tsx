@@ -58,6 +58,54 @@ const NetworkPanel: React.FC<NetworkPanelProps> = ({ locale = 'zh' }) => {
     updateRequests();
   }, [updateRequests]);
 
+  // 检查样式是否正确应用
+  useEffect(() => {
+    console.log('[QuickTrans Panel] NetworkPanel component mounted');
+    
+    // 延迟检查，确保 DOM 已渲染
+    setTimeout(() => {
+      const panel = document.querySelector('.network-panel');
+      if (panel) {
+        const computed = window.getComputedStyle(panel);
+        console.log('[QuickTrans Panel] NetworkPanel computed styles:', {
+          backgroundColor: computed.backgroundColor,
+          background: computed.background,
+          backdropFilter: computed.backdropFilter,
+          WebkitBackdropFilter: computed.getPropertyValue('-webkit-backdrop-filter'),
+          fontFamily: computed.fontFamily,
+          fontSize: computed.fontSize,
+          color: computed.color
+        });
+        
+        // 检查关键样式类
+        const header = document.querySelector('.network-panel-header');
+        if (header) {
+          const headerComputed = window.getComputedStyle(header);
+          console.log('[QuickTrans Panel] Header computed styles:', {
+            backgroundColor: headerComputed.backgroundColor,
+            backdropFilter: headerComputed.backdropFilter,
+            padding: headerComputed.padding,
+            borderRadius: headerComputed.borderRadius
+          });
+        }
+        
+        // 检查输入框样式
+        const searchInput = document.querySelector('.search-input');
+        if (searchInput) {
+          const inputComputed = window.getComputedStyle(searchInput);
+          console.log('[QuickTrans Panel] Search input computed styles:', {
+            backgroundColor: inputComputed.backgroundColor,
+            borderRadius: inputComputed.borderRadius,
+            padding: inputComputed.padding,
+            border: inputComputed.border
+          });
+        }
+      } else {
+        console.warn('[QuickTrans Panel] ⚠ NetworkPanel element not found in DOM');
+      }
+    }, 300);
+  }, []);
+
   // 选择请求
   const handleSelectRequest = async (requestId: string) => {
     setSelectedRequestId(requestId);

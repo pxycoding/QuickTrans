@@ -49,9 +49,11 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
             // 如果窗口不存在，则创建
             if (!existingWindows.includes(windowId)) {
               if (url) {
-                floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, url, minimized, windowId).catch(console.error);
+                // 从storage恢复的窗口，如果没有imageUrl，可能是从popup进入的，显示模式切换按钮
+                floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, url, minimized, windowId, !imageUrl).catch(console.error);
               } else if (imageUrl) {
-                floatWindowManager.showQRCodeDecoderPanel(imageUrl, undefined, url, minimized, windowId).catch(console.error);
+                // 从storage恢复的窗口，有imageUrl说明是从右键菜单（解码）进入的，不显示模式切换按钮
+                floatWindowManager.showQRCodeDecoderPanel(imageUrl, undefined, url, minimized, windowId, false).catch(console.error);
               }
             }
           }
@@ -159,7 +161,7 @@ window.addEventListener('qa-booster-action', ((e: CustomEvent) => {
     floatWindowManager.showTimestampPanel(value, type).catch(console.error);
   } else if (type === ContentType.URL) {
     console.log('[QA Booster] 显示二维码生成面板');
-    floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, value).catch(console.error);
+    floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, value, false, undefined, true).catch(console.error);
   } else {
     console.warn('[QA Booster] 未知的内容类型:', type);
   }
@@ -200,7 +202,7 @@ if (chrome?.runtime?.onMessage) {
   } else if (message.type === 'DECODE_QRCODE') {
     const { imageUrl, imageFile } = message.payload;
     console.log('[QA Booster] 显示二维码识别面板:', { imageUrl, imageFile });
-    floatWindowManager.showQRCodeDecoderPanel(imageUrl, imageFile).catch(console.error);
+    floatWindowManager.showQRCodeDecoderPanel(imageUrl, imageFile, undefined, false, undefined, false).catch(console.error);
     sendResponse({ success: true });
   } else if (message.type === 'CONVERT_TIMESTAMP') {
     const { selectionText } = message.payload;
@@ -234,13 +236,16 @@ if (chrome?.runtime?.onMessage) {
     // 返回true表示异步处理
     return true;
   } else if (message.type === 'GENERATE_QRCODE') {
-    const { selectionText } = message.payload;
-    console.log('[QA Booster] 处理生成二维码请求:', { selectionText });
+    const { selectionText, source } = message.payload;
+    console.log('[QA Booster] 处理生成二维码请求:', { selectionText, source });
+    
+    // 判断是否从 popup 进入（显示模式切换按钮）
+    const showModeSwitcher = source === 'popup';
     
     // 如果为空，直接打开面板让用户输入
     if (!selectionText || !selectionText.trim()) {
       console.log('[QA Booster] 打开空的二维码生成面板，让用户输入');
-      floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, '').catch(console.error);
+      floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, '', false, undefined, showModeSwitcher).catch(console.error);
       sendResponse({ success: true });
       return true;
     }
@@ -252,7 +257,7 @@ if (chrome?.runtime?.onMessage) {
         // 二维码可以处理URL和其他文本内容
         if (detectionResult.type === ContentType.URL || detectionResult.type === ContentType.UNKNOWN) {
           console.log('[QA Booster] 显示二维码生成面板:', { value: selectionText });
-          floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, selectionText).catch(console.error);
+          floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, selectionText, false, undefined, showModeSwitcher).catch(console.error);
           sendResponse({ success: true });
         } else {
           console.warn('[QA Booster] 无法生成二维码的内容类型:', selectionText);
@@ -289,9 +294,11 @@ if (chrome?.runtime?.onMessage) {
             const existingWindows = floatWindowManager.getActiveWindows();
             if (!existingWindows.includes(windowId)) {
               if (url) {
-                floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, url, minimized, windowId).catch(console.error);
+                // 从storage恢复的窗口，如果没有imageUrl，可能是从popup进入的，显示模式切换按钮
+                floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, url, minimized, windowId, !imageUrl).catch(console.error);
               } else if (imageUrl) {
-                floatWindowManager.showQRCodeDecoderPanel(imageUrl, undefined, url, minimized, windowId).catch(console.error);
+                // 从storage恢复的窗口，有imageUrl说明是从右键菜单（解码）进入的，不显示模式切换按钮
+                floatWindowManager.showQRCodeDecoderPanel(imageUrl, undefined, url, minimized, windowId, false).catch(console.error);
               }
             }
           }

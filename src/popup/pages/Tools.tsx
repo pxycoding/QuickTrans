@@ -91,7 +91,8 @@ export const Tools: React.FC = () => {
       await chrome.tabs.sendMessage(tabId, {
         type: 'GENERATE_QRCODE',
         payload: {
-          selectionText: '' // 空值，让用户在面板中输入
+          selectionText: '', // 空值，让用户在面板中输入
+          source: 'popup' // 标记来源为 popup
         }
       });
     } catch (error) {

@@ -20,3 +20,4 @@ QuickTrans provides timestamp conversion and QR code tools to improve QA and dev
 
 QuickTrans 为 QA 工程师和开发者提供时间戳转换和二维码工具，帮助他们在测试和开发工作中快速处理时间相关数据和生成/识别二维码。
 
+

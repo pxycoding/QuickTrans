@@ -104,9 +104,9 @@ export class FloatWindowManager {
     return id;
   }
 
-  async showQRCodeDecoderPanel(imageUrl?: string, imageFile?: File, url?: string, minimized: boolean = false, windowId?: string) {
+  async showQRCodeDecoderPanel(imageUrl?: string, imageFile?: File, url?: string, minimized: boolean = false, windowId?: string, showModeSwitcher: boolean = true) {
     const id = windowId || this.generateWindowId();
-    console.log('[FloatWindowManager] 显示二维码识别面板:', { imageUrl, imageFile, url, minimized, windowId: id });
+    console.log('[FloatWindowManager] 显示二维码识别面板:', { imageUrl, imageFile, url, minimized, windowId: id, showModeSwitcher });
     await this.render(
       id,
       React.createElement(QRCodeDecoderPanel, {
@@ -115,7 +115,8 @@ export class FloatWindowManager {
         url,
         windowId: id,
         onClose: () => this.close(id),
-        minimized
+        minimized,
+        showModeSwitcher
       })
     );
     console.log('[FloatWindowManager] ✅ 二维码识别面板已渲染');
