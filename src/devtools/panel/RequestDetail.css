@@ -330,10 +330,30 @@
   font-size: 12px;
 }
 
+.timestamp-original.adjusted {
+  color: #9b59b6;
+  background: rgba(155, 89, 182, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.timestamp-original.adjusted {
+  color: #9b59b6;
+  background: rgba(155, 89, 182, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
 .timestamp-standard {
   color: #667eea;
   font-weight: 600;
   font-size: 12px;
+}
+
+.timestamp-standard.adjusted {
+  color: #9b59b6;
 }
 
 .timestamp-relative {
@@ -342,6 +362,12 @@
   font-weight: 400;
 }
 
+.timestamp-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.adjust-btn,
 .copy-btn {
   padding: 8px 14px;
   border: none;
@@ -359,6 +385,7 @@
   letter-spacing: -0.1px;
 }
 
+.adjust-btn:hover,
 .copy-btn:hover {
   background: rgba(255, 255, 255, 0.8);
   transform: translateY(-1px);
@@ -367,5 +394,15 @@
     0 4px 12px rgba(0, 0, 0, 0.08),
     inset 2px 2px 5px rgba(209, 217, 230, 0.2),
     inset -2px -2px 5px rgba(255, 255, 255, 0.8);
+}
+
+.adjust-btn {
+  background: rgba(155, 89, 182, 0.15);
+  color: #9b59b6;
+}
+
+.adjust-btn:hover {
+  background: rgba(155, 89, 182, 0.25);
+  color: #8e44ad;
 }
 

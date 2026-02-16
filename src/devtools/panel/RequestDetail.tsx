@@ -1,25 +1,30 @@
 import React, { useState, useEffect } from 'react';
+import { useI18n } from '../../i18n/useI18n';
 import { requestCache, RequestMetadata } from '../utils/requestCache';
 import { TimestampScanner, TimestampMatch } from '../utils/timestampScanner';
 import { UrlExtractor, ExtractedUrl } from '../utils/urlExtractor';
+import { TimestampConverter } from '../../converters/TimestampConverter';
 import JsonViewer from './JsonViewer';
 import QRCodeViewer from './QRCodeViewer';
+import TimestampAdjustModal from './TimestampAdjustModal';
 import './RequestDetail.css';
 
 interface RequestDetailProps {
   requestId: string;
-  locale?: 'zh' | 'en';
 }
 
 type TabType = 'response' | 'request' | 'headers' | 'urls' | 'timestamps';
 
-const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, locale = 'zh' }) => {
+const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
+  const { t, locale } = useI18n();
   const [request, setRequest] = useState<RequestMetadata | null>(null);
   const [activeTab, setActiveTab] = useState<TabType>('response');
   const [loading, setLoading] = useState(false);
   const [timestamps, setTimestamps] = useState<TimestampMatch[]>([]);
   const [urls, setUrls] = useState<ExtractedUrl[]>([]);
   const [jsonData, setJsonData] = useState<any>(null);
+  const [adjustingTimestampIndex, setAdjustingTimestampIndex] = useState<number | null>(null);
+  const [adjustedTimestamps, setAdjustedTimestamps] = useState<Map<number, number>>(new Map());
 
   // 加载请求详情
   useEffect(() => {
@@ -191,17 +196,17 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, locale = 'zh' 
   if (!request) {
     return (
       <div className="request-detail-empty">
-        {locale === 'zh' ? '加载中...' : 'Loading...'}
+        {t('network.loading')}
       </div>
     );
   }
 
   const tabs = [
-    { id: 'response' as TabType, label: locale === 'zh' ? 'Response' : 'Response' },
-    { id: 'request' as TabType, label: locale === 'zh' ? 'Request' : 'Request' },
-    { id: 'headers' as TabType, label: locale === 'zh' ? 'Headers' : 'Headers' },
-    { id: 'urls' as TabType, label: locale === 'zh' ? `URLs (${urls.length})` : `URLs (${urls.length})` },
-    { id: 'timestamps' as TabType, label: locale === 'zh' ? `时间戳 (${timestamps.length})` : `Timestamps (${timestamps.length})` }
+    { id: 'response' as TabType, label: t('network.response') },
+    { id: 'request' as TabType, label: t('network.request') },
+    { id: 'headers' as TabType, label: t('network.headers') },
+    { id: 'urls' as TabType, label: `${t('network.urls')} (${urls.length})` },
+    { id: 'timestamps' as TabType, label: `${t('network.timestamps')} (${timestamps.length})` }
   ];
 
   return (
@@ -228,7 +233,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, locale = 'zh' 
       </div>
       <div className="request-detail-content">
         {loading ? (
-          <div className="loading">{locale === 'zh' ? '加载中...' : 'Loading...'}</div>
+          <div className="loading">{t('network.loading')}</div>
         ) : (
           <>
             {activeTab === 'response' && (
@@ -241,7 +246,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, locale = 'zh' 
                   )
                 ) : (
                   <div className="empty-content">
-                    {locale === 'zh' ? '暂无响应内容' : 'No response content'}
+                    {t('network.noResponseContent')}
                   </div>
                 )}
               </div>
@@ -252,7 +257,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, locale = 'zh' 
                   <pre className="raw-content">{request.requestBody}</pre>
                 ) : (
                   <div className="empty-content">
-                    {locale === 'zh' ? '暂无请求体' : 'No request body'}
+                    {t('network.noRequestBody')}
                   </div>
                 )}
               </div>
@@ -260,7 +265,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, locale = 'zh' 
             {activeTab === 'headers' && (
               <div className="tab-content">
                 <div className="headers-section">
-                  <h3>{locale === 'zh' ? '请求头' : 'Request Headers'}</h3>
+                  <h3>{t('network.requestHeaders')}</h3>
                   {request.requestHeaders ? (
                     <table className="headers-table">
                       <tbody>
@@ -277,7 +282,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, locale = 'zh' 
                   )}
                 </div>
                 <div className="headers-section">
-                  <h3>{locale === 'zh' ? '响应头' : 'Response Headers'}</h3>
+                  <h3>{t('network.responseHeaders')}</h3>
                   {request.responseHeaders ? (
                     <table className="headers-table">
                       <tbody>
@@ -300,7 +305,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, locale = 'zh' 
                 <div className="url-list">
                   {urls.length === 0 ? (
                     <div className="empty-content">
-                      {locale === 'zh' ? '未找到URL' : 'No URLs found'}
+                      {t('network.noUrls')}
                     </div>
                   ) : (
                     urls.map((urlInfo, idx) => (
@@ -322,40 +327,89 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId, locale = 'zh' 
                 <div className="timestamps-list">
                   {timestamps.length === 0 ? (
                     <div className="empty-content">
-                      {locale === 'zh' ? '未找到时间戳' : 'No timestamps found'}
+                      {t('network.noTimestamps')}
                     </div>
                   ) : (
                     <table className="timestamps-table">
                       <thead>
                         <tr>
-                          <th>{locale === 'zh' ? '路径' : 'Path'}</th>
-                          <th>{locale === 'zh' ? '原始值' : 'Original'}</th>
-                          <th>{locale === 'zh' ? '标准时间' : 'Standard Time'}</th>
-                          <th>{locale === 'zh' ? '相对时间' : 'Relative'}</th>
-                          <th>{locale === 'zh' ? '操作' : 'Actions'}</th>
+                          <th>{t('network.path')}</th>
+                          <th>{t('network.original')}</th>
+                          <th>{t('network.standardTime')}</th>
+                          <th>{t('network.relative')}</th>
+                          <th>{t('network.actions')}</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {timestamps.map((ts, idx) => (
-                          <tr key={idx}>
-                            <td className="timestamp-path">{ts.path}</td>
-                            <td className="timestamp-original">{String(ts.originalValue)}</td>
-                            <td className="timestamp-standard">{ts.converted.standard}</td>
-                            <td className="timestamp-relative">{ts.converted.relative || '-'}</td>
-                            <td className="timestamp-actions">
-                              <button
-                                onClick={() => navigator.clipboard.writeText(ts.converted.standard)}
-                                className="copy-btn"
-                              >
-                                {locale === 'zh' ? '复制' : 'Copy'}
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                        {timestamps.map((ts, idx) => {
+                          const adjustedTimestamp = adjustedTimestamps.get(idx);
+                          let displayValue: string;
+                          let displayStandard: string;
+                          let isAdjusted = false;
+                          
+                          if (adjustedTimestamp !== undefined) {
+                            isAdjusted = true;
+                            // 根据原始值类型决定显示秒还是毫秒
+                            const originalStr = String(ts.originalValue);
+                            if (originalStr.length === 10 || (typeof ts.originalValue === 'number' && ts.originalValue < 10000000000)) {
+                              // 原始是秒级时间戳，显示秒
+                              displayValue = Math.floor(adjustedTimestamp / 1000).toString();
+                            } else {
+                              // 原始是毫秒级时间戳，显示毫秒
+                              displayValue = adjustedTimestamp.toString();
+                            }
+                            // 计算调整后的标准时间
+                            const adjustedResult = TimestampConverter.fromTimestamp(adjustedTimestamp, { includeRelative: false });
+                            displayStandard = adjustedResult.standard;
+                          } else {
+                            displayValue = String(ts.originalValue);
+                            displayStandard = ts.converted.standard;
+                          }
+                          
+                          return (
+                            <tr key={idx}>
+                              <td className="timestamp-path">{ts.path}</td>
+                              <td className={`timestamp-original ${isAdjusted ? 'adjusted' : ''}`}>
+                                {displayValue}
+                              </td>
+                              <td className={`timestamp-standard ${isAdjusted ? 'adjusted' : ''}`}>
+                                {displayStandard}
+                              </td>
+                              <td className="timestamp-relative">{ts.converted.relative || '-'}</td>
+                              <td className="timestamp-actions">
+                                <button
+                                  onClick={() => setAdjustingTimestampIndex(idx)}
+                                  className="adjust-btn"
+                                >
+                                  {t('network.adjust')}
+                                </button>
+                                <button
+                                  onClick={() => navigator.clipboard.writeText(displayStandard)}
+                                  className="copy-btn"
+                                >
+                                  {t('network.copy')}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   )}
                 </div>
+                {adjustingTimestampIndex !== null && (
+                  <TimestampAdjustModal
+                    timestamp={timestamps[adjustingTimestampIndex]}
+                    onApply={(adjustedTimestamp) => {
+                      const newAdjusted = new Map(adjustedTimestamps);
+                      newAdjusted.set(adjustingTimestampIndex, adjustedTimestamp);
+                      setAdjustedTimestamps(newAdjusted);
+                      setAdjustingTimestampIndex(null);
+                    }}
+                    onClose={() => setAdjustingTimestampIndex(null)}
+                    locale={locale}
+                  />
+                )}
               </div>
             )}
           </>

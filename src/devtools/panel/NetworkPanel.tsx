@@ -1,4 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Tooltip } from 'antd';
+import { InfoCircleOutlined } from '@ant-design/icons';
+import { useI18n } from '../../i18n/useI18n';
 import { requestCache, RequestMetadata } from '../utils/requestCache';
 import { TimestampScanner, TimestampMatch } from '../utils/timestampScanner';
 import { UrlExtractor, ExtractedUrl } from '../utils/urlExtractor';
@@ -6,16 +9,14 @@ import RequestList from './RequestList';
 import RequestDetail from './RequestDetail';
 import './NetworkPanel.css';
 
-interface NetworkPanelProps {
-  locale?: 'zh' | 'en';
-}
-
-const NetworkPanel: React.FC<NetworkPanelProps> = ({ locale = 'zh' }) => {
+const NetworkPanel: React.FC = () => {
+  const { t, locale, setLocale } = useI18n();
   const [requests, setRequests] = useState<RequestMetadata[]>([]);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isPaused, setIsPaused] = useState(false);
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // 更新请求列表
   const updateRequests = useCallback(() => {
@@ -33,17 +34,26 @@ const NetworkPanel: React.FC<NetworkPanelProps> = ({ locale = 'zh' }) => {
     }
 
     setRequests(filtered);
+    
+    // 如果搜索后只有一个结果，自动选中
+    if (searchQuery && filtered.length === 1) {
+      setSelectedRequestId(filtered[0].requestId);
+    }
   }, [searchQuery, filterStatus]);
 
-  // 监听网络请求
+  // 监听网络请求（仅捕获 fetch 和 xhr）
   useEffect(() => {
     if (isPaused) {
       return;
     }
 
     const handler = (request: chrome.devtools.network.Request) => {
-      requestCache.addRequest(request);
-      updateRequests();
+      // 只处理 fetch 和 xhr 类型的请求
+      const requestType = (request as any).type?.toLowerCase();
+      if (requestType === 'fetch' || requestType === 'xhr') {
+        requestCache.addRequest(request);
+        updateRequests();
+      }
     };
 
     chrome.devtools.network.onRequestFinished.addListener(handler);
@@ -120,26 +130,59 @@ const NetworkPanel: React.FC<NetworkPanelProps> = ({ locale = 'zh' }) => {
 
   // 清空请求
   const handleClear = () => {
-    if (confirm(locale === 'zh' ? '确定要清空所有请求记录吗？' : 'Are you sure you want to clear all requests?')) {
+    if (confirm(t('network.clearConfirm'))) {
       requestCache.clear();
       setRequests([]);
       setSelectedRequestId(null);
     }
   };
 
+  // 添加 mock 请求（用于测试时间戳）
+  const handleAddMockRequest = () => {
+    const mockRequestId = requestCache.addMockRequest();
+    updateRequests();
+    setSelectedRequestId(mockRequestId);
+  };
+
+
+  // 快捷键支持
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd/Ctrl + F 聚焦搜索框
+      if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+        e.preventDefault();
+        if (searchInputRef.current) {
+          searchInputRef.current.focus();
+          searchInputRef.current.select();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
+
   return (
     <div className="network-panel">
       <div className="network-panel-header">
         <div className="header-left">
-          <h2>QuickTrans Network</h2>
+          <h2>
+            {t('network.title')}
+            <Tooltip title={t('network.filterInfo')}>
+              <InfoCircleOutlined className="filter-info-icon" />
+            </Tooltip>
+          </h2>
           <span className="request-count">
-            {requests.length} {locale === 'zh' ? '条请求' : 'requests'}
+            {requests.length} {t('network.requests')}
           </span>
         </div>
         <div className="header-actions">
           <input
+            ref={searchInputRef}
             type="text"
-            placeholder={locale === 'zh' ? '搜索URL、方法、状态码...' : 'Search URL, method, status...'}
+            placeholder={t('network.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
@@ -149,7 +192,7 @@ const NetworkPanel: React.FC<NetworkPanelProps> = ({ locale = 'zh' }) => {
             onChange={(e) => setFilterStatus(e.target.value)}
             className="status-filter"
           >
-            <option value="all">{locale === 'zh' ? '全部状态' : 'All Status'}</option>
+            <option value="all">{t('network.allStatus')}</option>
             <option value="200">200 OK</option>
             <option value="404">404 Not Found</option>
             <option value="500">500 Error</option>
@@ -158,11 +201,24 @@ const NetworkPanel: React.FC<NetworkPanelProps> = ({ locale = 'zh' }) => {
             onClick={() => setIsPaused(!isPaused)}
             className={`pause-btn ${isPaused ? 'paused' : ''}`}
           >
-            {isPaused ? (locale === 'zh' ? '▶ 继续' : '▶ Resume') : (locale === 'zh' ? '⏸ 暂停' : '⏸ Pause')}
+            {isPaused ? t('network.resume') : t('network.pause')}
           </button>
+          {/* <button onClick={handleAddMockRequest} className="mock-btn" title={t('network.mockTooltip')}>
+            {t('network.mock')}
+          </button> */}
           <button onClick={handleClear} className="clear-btn">
-            {locale === 'zh' ? '清空' : 'Clear'}
+            {t('network.clear')}
           </button>
+          <div className="language-selector">
+            <select
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as 'zh' | 'en')}
+              className="language-select"
+            >
+              <option value="zh">{t('language.zh')}</option>
+              <option value="en">{t('language.en')}</option>
+            </select>
+          </div>
         </div>
       </div>
       <div className="network-panel-content">
@@ -171,18 +227,16 @@ const NetworkPanel: React.FC<NetworkPanelProps> = ({ locale = 'zh' }) => {
             requests={requests}
             selectedRequestId={selectedRequestId}
             onSelectRequest={handleSelectRequest}
-            locale={locale}
           />
         </div>
         <div className="request-detail-container">
           {selectedRequestId ? (
             <RequestDetail
               requestId={selectedRequestId}
-              locale={locale}
             />
           ) : (
             <div className="empty-detail">
-              {locale === 'zh' ? '选择一个请求查看详情' : 'Select a request to view details'}
+              {t('network.selectRequest')}
             </div>
           )}
         </div>

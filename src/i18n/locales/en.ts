@@ -168,6 +168,42 @@ export const en = {
   language: {
     zh: '中文',
     en: 'English'
+  },
+
+  // Network panel
+  network: {
+    title: 'QuickTrans Network',
+    filterInfo: 'Only capture xhr/fetch requests',
+    requests: 'requests',
+    searchPlaceholder: 'Search URL, method, status... (Cmd/Ctrl+F)',
+    allStatus: 'All Status',
+    pause: '⏸ Pause',
+    resume: '▶ Resume',
+    clear: 'Clear',
+    clearConfirm: 'Are you sure you want to clear all requests?',
+    mock: '📝 Mock',
+    mockTooltip: 'Add mock request with timestamps',
+    selectRequest: 'Select a request to view details',
+    noRequests: 'No requests',
+    loading: 'Loading...',
+    response: 'Response',
+    request: 'Request',
+    headers: 'Headers',
+    urls: 'URLs',
+    timestamps: 'Timestamps',
+    noResponseContent: 'No response content',
+    noRequestBody: 'No request body',
+    requestHeaders: 'Request Headers',
+    responseHeaders: 'Response Headers',
+    noUrls: 'No URLs found',
+    noTimestamps: 'No timestamps found',
+    path: 'Path',
+    original: 'Original',
+    standardTime: 'Standard Time',
+    relative: 'Relative',
+    actions: 'Actions',
+    adjust: 'Adjust',
+    copy: 'Copy'
   }
 };
 

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useI18n } from '../../i18n/useI18n';
 import { RequestMetadata } from '../utils/requestCache';
 import './RequestList.css';
 
@@ -6,15 +7,14 @@ interface RequestListProps {
   requests: RequestMetadata[];
   selectedRequestId: string | null;
   onSelectRequest: (requestId: string) => void;
-  locale?: 'zh' | 'en';
 }
 
 const RequestList: React.FC<RequestListProps> = ({
   requests,
   selectedRequestId,
-  onSelectRequest,
-  locale = 'zh'
+  onSelectRequest
 }) => {
+  const { t } = useI18n();
   const getStatusColor = (status: number): string => {
     if (status >= 200 && status < 300) return '#4caf50';
     if (status >= 300 && status < 400) return '#2196f3';
@@ -47,13 +47,14 @@ const RequestList: React.FC<RequestListProps> = ({
     <div className="request-list">
       {requests.length === 0 ? (
         <div className="empty-list">
-          {locale === 'zh' ? '暂无请求记录' : 'No requests'}
+          {t('network.noRequests')}
         </div>
       ) : (
         <div className="request-items">
           {requests.map((request) => (
             <div
               key={request.requestId}
+              data-request-id={request.requestId}
               className={`request-item ${selectedRequestId === request.requestId ? 'selected' : ''}`}
               onClick={() => onSelectRequest(request.requestId)}
             >

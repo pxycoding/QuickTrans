@@ -1,6 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { initI18n } from '../../i18n/config';
+import 'antd/dist/reset.css';
 import NetworkPanel from './NetworkPanel';
 import './panel.css';
 
@@ -14,7 +15,7 @@ initI18n().then(() => {
   const root = createRoot(container);
   root.render(
     <React.StrictMode>
-      <NetworkPanel locale="zh" />
+      <NetworkPanel />
     </React.StrictMode>
   );
 }).catch(err => {

@@ -168,6 +168,42 @@ export const zh = {
   language: {
     zh: '中文',
     en: 'English'
+  },
+
+  // 网络面板
+  network: {
+    title: 'QuickTrans Network',
+    filterInfo: '仅捕获 xhr/fetch 请求',
+    requests: '条请求',
+    searchPlaceholder: '搜索URL、方法、状态码... (Cmd/Ctrl+F)',
+    allStatus: '全部状态',
+    pause: '⏸ 暂停',
+    resume: '▶ 继续',
+    clear: '清空',
+    clearConfirm: '确定要清空所有请求记录吗？',
+    mock: '📝 Mock',
+    mockTooltip: '添加包含时间戳的测试数据',
+    selectRequest: '选择一个请求查看详情',
+    noRequests: '暂无请求记录',
+    loading: '加载中...',
+    response: 'Response',
+    request: 'Request',
+    headers: 'Headers',
+    urls: 'URLs',
+    timestamps: '时间戳',
+    noResponseContent: '暂无响应内容',
+    noRequestBody: '暂无请求体',
+    requestHeaders: '请求头',
+    responseHeaders: '响应头',
+    noUrls: '未找到URL',
+    noTimestamps: '未找到时间戳',
+    path: '路径',
+    original: '原始值',
+    standardTime: '标准时间',
+    relative: '相对时间',
+    actions: '操作',
+    adjust: '调整',
+    copy: '复制'
   }
 };
 
