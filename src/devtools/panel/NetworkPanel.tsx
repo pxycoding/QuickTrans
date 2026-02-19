@@ -44,21 +44,28 @@ const NetworkPanel: React.FC = () => {
   // 监听网络请求（仅捕获 fetch 和 xhr）
   useEffect(() => {
     if (isPaused) {
+      console.log('[QuickTrans Panel] onRequestFinished: skipped (isPaused=true)');
       return;
     }
 
     const handler = (request: chrome.devtools.network.Request) => {
-      // 只处理 fetch 和 xhr 类型的请求
-      const requestType = (request as any).type?.toLowerCase();
-      if (requestType === 'fetch' || requestType === 'xhr') {
+      const req = request as any;
+      // Chrome 使用 _resourceType，type 可能为 undefined
+      const requestType = req.type?.toLowerCase() ?? req._resourceType?.toLowerCase();
+      const url = request.request?.url ?? '(no url)';
+
+      const isFetchOrXhr = requestType === 'fetch' || requestType === 'xhr';
+      if (isFetchOrXhr) {
         requestCache.addRequest(request);
         updateRequests();
       }
     };
 
+    console.log('[QuickTrans Panel] onRequestFinished: 注册监听器');
     chrome.devtools.network.onRequestFinished.addListener(handler);
 
     return () => {
+      console.log('[QuickTrans Panel] onRequestFinished: 移除监听器');
       chrome.devtools.network.onRequestFinished.removeListener(handler);
     };
   }, [isPaused, updateRequests]);

@@ -7,7 +7,10 @@
     "dev": "vite build --watch --mode development & vite build -c vite.content.config.ts --watch --mode development",
     "build": "tsc && vite build && vite build -c vite.content.config.ts && node scripts/copy-manifest.mjs",
     "preview": "vite preview",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@ant-design/icons": "^5.2.6",
@@ -36,6 +39,12 @@
     "eslint-plugin-react-refresh": "^0.4.5",
     "typescript": "^5.3.3",
     "vite": "^5.0.8",
-    "vite-plugin-static-copy": "^1.0.3"
+    "vite-plugin-static-copy": "^1.0.3",
+    "vitest": "^2.0.0",
+    "@vitest/coverage-v8": "^2.0.0",
+    "jsdom": "^25.0.0",
+    "@testing-library/react": "^16.0.0",
+    "@testing-library/jest-dom": "^6.0.0",
+    "@testing-library/dom": "^10.0.0"
   }
 }

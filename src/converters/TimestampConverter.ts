@@ -75,10 +75,19 @@ export class TimestampConverter {
     options: ConvertOptions = {}
   ): TimestampResult {
     const {
-      timezone: tz = dayjs.tz.guess()
+      timezone: tz
     } = options;
 
-    const date = dayjs.tz(dateString, tz);
+    let date: dayjs.Dayjs;
+    
+    // 如果指定了时区，将字符串解析为该时区的本地时间
+    // 如果没有指定时区，将字符串解析为 UTC 时间
+    if (tz) {
+      date = dayjs.tz(dateString, tz);
+    } else {
+      // 没有指定时区时，解析为 UTC 时间
+      date = dayjs.utc(dateString);
+    }
 
     if (!date.isValid()) {
       throw new Error('Invalid date string');

@@ -44,7 +44,9 @@ export class RequestCache {
     // 安全获取属性
     const response = request.response || {};
     const requestInfo = request.request || {};
-    
+    const req = request as any;
+    const reqType = req.type ?? req._resourceType;
+
     const metadata: RequestMetadata = {
       requestId,
       url: requestInfo.url || '',
@@ -52,7 +54,7 @@ export class RequestCache {
       status: response.status || 0,
       statusText: response.statusText || '',
       mimeType: (response as any).mimeType,
-      type: (request as any).type,
+      type: reqType,
       time: request.time || 0,
       timestamp: Date.now(),
       bodyLoaded: false,

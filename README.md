@@ -58,6 +58,26 @@ npm run build
 
 构建完成后，在Chrome中加载 `dist` 目录作为未打包的扩展程序。
 
+### 自动化测试
+
+项目使用 [Vitest](https://vitest.dev/) 做单元测试，与 Vite 同源配置。
+
+```bash
+# 安装依赖（若尚未安装）
+npm install
+
+# 监听模式运行测试（修改代码时自动重跑）
+npm run test
+
+# 单次运行全部测试
+npm run test:run
+
+# 生成覆盖率报告
+npm run test:coverage
+```
+
+测试文件约定：`src/**/*.test.ts`、`src/**/*.test.tsx`。当前覆盖转换器（时间戳、内容检测）、DevTools 工具（时间戳扫描、URL 提取）等纯逻辑；依赖 Chrome API 或 DOM 的模块可在测试中 mock 后逐步补充。
+
 ## 技术栈
 
 - **框架**: React 18 + TypeScript
