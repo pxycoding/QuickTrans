@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "QuickTrans",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "自动识别时间戳并转换，一键生成/识别二维码，提升测试效率。Auto-detect timestamps, convert formats, generate/scan QR codes instantly.",
   "permissions": [
     "storage",

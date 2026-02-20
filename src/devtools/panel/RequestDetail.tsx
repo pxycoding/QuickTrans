@@ -4,6 +4,7 @@ import { requestCache, RequestMetadata } from '../utils/requestCache';
 import { TimestampScanner, TimestampMatch } from '../utils/timestampScanner';
 import { UrlExtractor, ExtractedUrl } from '../utils/urlExtractor';
 import { TimestampConverter } from '../../converters/TimestampConverter';
+import { getStoredTimezone, getCurrentTimezone } from '../../utils/timezone';
 import JsonViewer from './JsonViewer';
 import QRCodeViewer from './QRCodeViewer';
 import TimestampAdjustModal from './TimestampAdjustModal';
@@ -25,6 +26,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
   const [jsonData, setJsonData] = useState<any>(null);
   const [adjustingTimestampIndex, setAdjustingTimestampIndex] = useState<number | null>(null);
   const [adjustedTimestamps, setAdjustedTimestamps] = useState<Map<number, number>>(new Map());
+  const [timezone, setTimezone] = useState<string>(() => getCurrentTimezone());
 
   // 加载请求详情
   useEffect(() => {
@@ -33,6 +35,9 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
       if (!metadata) {
         return;
       }
+
+      const tz = await getStoredTimezone();
+      setTimezone(tz);
 
       setRequest(metadata);
 
@@ -50,13 +55,13 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
                 const parsed = JSON.parse(loadedMetadata.responseBody);
                 setJsonData(parsed);
                 
-                const tsMatches = TimestampScanner.scanJson(parsed);
+                const tsMatches = TimestampScanner.scanJson(parsed, '', { timezone: tz });
                 setTimestamps(tsMatches);
 
                 const extractedUrls = UrlExtractor.extractFromJson(parsed, '', 'response');
                 setUrls(extractedUrls);
               } catch (e) {
-                const tsMatches = TimestampScanner.scanText(loadedMetadata.responseBody);
+                const tsMatches = TimestampScanner.scanText(loadedMetadata.responseBody, { timezone: tz });
                 setTimestamps(tsMatches);
 
                 const extractedUrls = UrlExtractor.extractFromText(loadedMetadata.responseBody, 'response');
@@ -67,7 +72,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
             if (loadedMetadata.requestBody) {
               try {
                 const parsed = JSON.parse(loadedMetadata.requestBody);
-                const tsMatches = TimestampScanner.scanJson(parsed);
+                const tsMatches = TimestampScanner.scanJson(parsed, '', { timezone: tz });
                 setTimestamps(prev => [...prev, ...tsMatches]);
 
                 const extractedUrls = UrlExtractor.extractFromJson(parsed, '', 'request');
@@ -82,7 +87,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
                   return Array.from(unique.values());
                 });
               } catch (e) {
-                const tsMatches = TimestampScanner.scanText(loadedMetadata.requestBody);
+                const tsMatches = TimestampScanner.scanText(loadedMetadata.requestBody, { timezone: tz });
                 setTimestamps(prev => [...prev, ...tsMatches]);
 
                 const extractedUrls = UrlExtractor.extractFromText(loadedMetadata.requestBody, 'request');
@@ -124,8 +129,8 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
           const parsed = JSON.parse(metadata.responseBody);
           setJsonData(parsed);
           
-          // 扫描时间戳
-          const tsMatches = TimestampScanner.scanJson(parsed);
+          // 扫描时间戳（使用 popup 选择的时区）
+          const tsMatches = TimestampScanner.scanJson(parsed, '', { timezone: tz });
           setTimestamps(tsMatches);
 
           // 提取URL
@@ -133,7 +138,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
           setUrls(extractedUrls);
         } catch (e) {
           // 不是JSON，尝试文本扫描
-          const tsMatches = TimestampScanner.scanText(metadata.responseBody);
+          const tsMatches = TimestampScanner.scanText(metadata.responseBody, { timezone: tz });
           setTimestamps(tsMatches);
 
           const extractedUrls = UrlExtractor.extractFromText(metadata.responseBody, 'response');
@@ -145,7 +150,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
       if (metadata.requestBody) {
         try {
           const parsed = JSON.parse(metadata.requestBody);
-          const tsMatches = TimestampScanner.scanJson(parsed);
+          const tsMatches = TimestampScanner.scanJson(parsed, '', { timezone: tz });
           setTimestamps(prev => [...prev, ...tsMatches]);
 
           const extractedUrls = UrlExtractor.extractFromJson(parsed, '', 'request');
@@ -161,7 +166,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
             return Array.from(unique.values());
           });
         } catch (e) {
-          const tsMatches = TimestampScanner.scanText(metadata.requestBody);
+          const tsMatches = TimestampScanner.scanText(metadata.requestBody, { timezone: tz });
           setTimestamps(prev => [...prev, ...tsMatches]);
 
           const extractedUrls = UrlExtractor.extractFromText(metadata.requestBody, 'request');
@@ -358,8 +363,8 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
                               // 原始是毫秒级时间戳，显示毫秒
                               displayValue = adjustedTimestamp.toString();
                             }
-                            // 计算调整后的标准时间
-                            const adjustedResult = TimestampConverter.fromTimestamp(adjustedTimestamp, { includeRelative: false });
+                            // 计算调整后的标准时间（使用 popup 选择的时区）
+                            const adjustedResult = TimestampConverter.fromTimestamp(adjustedTimestamp, { timezone, includeRelative: false });
                             displayStandard = adjustedResult.standard;
                           } else {
                             displayValue = String(ts.originalValue);
@@ -408,6 +413,7 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
                     }}
                     onClose={() => setAdjustingTimestampIndex(null)}
                     locale={locale}
+                    timezone={timezone}
                   />
                 )}
               </div>

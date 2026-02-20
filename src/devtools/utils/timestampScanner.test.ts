@@ -49,4 +49,34 @@ describe('TimestampScanner', () => {
       expect(matches.length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  describe('时区选项', () => {
+    it('传入 timezone 时扫描结果应按该时区显示标准时间', () => {
+      // 1704067200000 = 2024-01-01 00:00:00 UTC = 2024-01-01 08:00:00 Asia/Shanghai
+      const obj = { ts: 1704067200000 };
+      const matchesUtc = TimestampScanner.scanJson(obj, '', { timezone: 'UTC' });
+      const matchesShanghai = TimestampScanner.scanJson(obj, '', { timezone: 'Asia/Shanghai' });
+      expect(matchesUtc).toHaveLength(1);
+      expect(matchesShanghai).toHaveLength(1);
+      expect(matchesUtc[0].converted.standard).toBe('2024-01-01 00:00:00');
+      expect(matchesShanghai[0].converted.standard).toBe('2024-01-01 08:00:00');
+    });
+
+    it('scanText 传入 timezone 时转换结果应使用该时区', () => {
+      const text = '1704067200000';
+      const matches = TimestampScanner.scanText(text, { timezone: 'Asia/Tokyo' });
+      expect(matches.length).toBeGreaterThanOrEqual(1);
+      const m = matches.find((x) => x.converted.unixMs === 1704067200000);
+      expect(m).toBeDefined();
+      expect(m!.converted.standard).toBe('2024-01-01 09:00:00'); // UTC+9
+    });
+
+    it('不传 timezone 时行为与之前一致（使用本地时区）', () => {
+      const obj = { createdAt: 1704067200000 };
+      const matches = TimestampScanner.scanJson(obj);
+      expect(matches).toHaveLength(1);
+      expect(matches[0].converted.unix).toBe(1704067200);
+      expect(matches[0].converted.standard).toMatch(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/);
+    });
+  });
 });

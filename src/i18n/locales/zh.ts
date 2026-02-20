@@ -37,7 +37,9 @@ export const zh = {
     subtitle: '时间戳转换 · 二维码生成识别',
     features: '功能介绍',
     settings: '常用参数配置',
-    tools: '工具列表'
+    tools: '工具列表',
+    timezone: '时区',
+    language: '语言'
   },
 
   // 时间戳转换

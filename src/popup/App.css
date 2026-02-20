@@ -46,6 +46,11 @@
   text-align: left;
 }
 
+/* 设置菜单打开时提升整块 header 的层叠上下文，避免被导航/内容区遮挡 */
+.popup-header.settings-menu-open {
+  z-index: 1000;
+}
+
 .popup-header-content {
   display: flex;
   justify-content: space-between;
@@ -89,8 +94,83 @@
   padding: 8px 14px;
 }
 
-.language-selector {
+.header-settings-wrap {
+  position: relative;
   flex-shrink: 0;
+}
+
+.settings-gear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  color: #8e8e93;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.settings-gear-btn:hover {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1a1a1a;
+}
+
+.settings-gear-btn[aria-expanded="true"] {
+  background: rgba(255, 255, 255, 0.95);
+  color: #1a1a1a;
+}
+
+.settings-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.settings-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 1001;
+  min-width: 200px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.98);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.settings-menu-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.settings-menu-item:last-child {
+  margin-bottom: 0;
+}
+
+.settings-menu-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #8e8e93;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-menu .language-select,
+.settings-menu .timezone-select {
+  width: 100%;
+  max-width: none;
+}
+
+.timezone-select {
+  max-width: 140px;
 }
 
 .language-select {

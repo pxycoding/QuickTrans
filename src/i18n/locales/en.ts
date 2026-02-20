@@ -37,7 +37,9 @@ export const en = {
     subtitle: 'Timestamp Conversion · QR Code Generation & Recognition',
     features: 'Features',
     settings: 'Query Parameter Config',
-    tools: 'Tools'
+    tools: 'Tools',
+    timezone: 'Timezone',
+    language: 'Language'
   },
 
   // Timestamp conversion

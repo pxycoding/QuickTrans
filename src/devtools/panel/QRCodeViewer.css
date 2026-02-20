@@ -55,6 +55,15 @@
   min-width: 0;
 }
 
+/* 与 .qrcode-url-display 的 padding-left 一致，保证 finalUrl 与参数区左侧对齐 */
+.qrcode-right .qrcode-params-label {
+  padding-left: 12px;
+}
+
+.qrcode-right .qrcode-params-scroll {
+  padding-left: 12px;
+}
+
 .qrcode-params-label {
   font-size: 12px;
   font-weight: 600;
@@ -188,9 +197,15 @@
   padding: 8px 12px;
   background: rgba(255, 255, 255, 0.4);
   border-radius: 10px;
-  max-width: 160px;
   line-height: 1.4;
   overflow-wrap: break-word;
+  min-width: 0;
+}
+
+/* 右侧栏中的 URL 占满可用宽度 */
+.qrcode-right .qrcode-url-display {
+  max-width: none;
+  width: 100%;
 }
 
 .qrcode-actions {

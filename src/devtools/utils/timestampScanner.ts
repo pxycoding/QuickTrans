@@ -22,6 +22,10 @@ export interface TimestampMatch {
   type: 'number' | 'string' | 'iso8601' | 'datetime';
 }
 
+export interface TimestampScanOptions {
+  timezone?: string;
+}
+
 /**
  * 增强版时间戳扫描器
  * 支持多种时间戳形态的识别和转换
@@ -29,9 +33,11 @@ export interface TimestampMatch {
 export class TimestampScanner {
   /**
    * 从JSON对象中扫描所有时间戳
+   * @param options.timezone 时区（与 popup 选择的时区一致），不传则使用浏览器本地时区
    */
-  static scanJson(obj: any, basePath: string = ''): TimestampMatch[] {
+  static scanJson(obj: any, basePath: string = '', options?: TimestampScanOptions): TimestampMatch[] {
     const matches: TimestampMatch[] = [];
+    const tz = options?.timezone;
 
     if (obj === null || obj === undefined) {
       return matches;
@@ -40,7 +46,7 @@ export class TimestampScanner {
     if (Array.isArray(obj)) {
       obj.forEach((item, index) => {
         const path = `${basePath}[${index}]`;
-        matches.push(...this.scanJson(item, path));
+        matches.push(...this.scanJson(item, path, options));
       });
       return matches;
     }
@@ -49,13 +55,13 @@ export class TimestampScanner {
       Object.keys(obj).forEach(key => {
         const path = basePath ? `${basePath}.${key}` : key;
         const value = obj[key];
-        matches.push(...this.scanJson(value, path));
+        matches.push(...this.scanJson(value, path, options));
       });
       return matches;
     }
 
     // 检查值本身是否是时间戳
-    const match = this.detectTimestamp(obj, basePath);
+    const match = this.detectTimestamp(obj, basePath, tz);
     if (match) {
       matches.push(match);
     }
@@ -65,8 +71,9 @@ export class TimestampScanner {
 
   /**
    * 从文本中扫描时间戳（非JSON场景）
+   * @param options.timezone 时区（与 popup 选择的时区一致）
    */
-  static scanText(text: string): TimestampMatch[] {
+  static scanText(text: string, options?: TimestampScanOptions): TimestampMatch[] {
     const matches: TimestampMatch[] = [];
 
     // 1. 检测纯数字时间戳（10位秒 / 13位毫秒）
@@ -75,11 +82,13 @@ export class TimestampScanner {
       /(?:^|\s)(\d{13})(?:\s|$)/g,  // 13位毫秒
     ];
 
+    const tz = options?.timezone;
+
     numberPatterns.forEach(pattern => {
       let match;
       while ((match = pattern.exec(text)) !== null) {
         const value = match[1];
-        const timestamp = this.detectTimestamp(value, '');
+        const timestamp = this.detectTimestamp(value, '', tz);
         if (timestamp) {
           matches.push({
             ...timestamp,
@@ -93,7 +102,7 @@ export class TimestampScanner {
     const isoPattern = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})/g;
     let isoMatch;
     while ((isoMatch = isoPattern.exec(text)) !== null) {
-      const timestamp = this.detectTimestamp(isoMatch[0], '');
+      const timestamp = this.detectTimestamp(isoMatch[0], '', tz);
       if (timestamp) {
         matches.push({
           ...timestamp,
@@ -111,7 +120,7 @@ export class TimestampScanner {
     datetimePatterns.forEach(pattern => {
       let match;
       while ((match = pattern.exec(text)) !== null) {
-        const timestamp = this.detectTimestamp(match[0], '');
+        const timestamp = this.detectTimestamp(match[0], '', tz);
         if (timestamp) {
           matches.push({
             ...timestamp,
@@ -129,11 +138,14 @@ export class TimestampScanner {
    */
   private static detectTimestamp(
     value: any,
-    path: string
+    path: string,
+    timezone?: string
   ): TimestampMatch | null {
     if (value === null || value === undefined) {
       return null;
     }
+
+    const converterOptions = timezone ? { timezone } : undefined;
 
     // 1. Number类型：10位秒 / 13位毫秒
     if (typeof value === 'number') {
@@ -146,7 +158,7 @@ export class TimestampScanner {
         
         if (num >= min && num <= max) {
           try {
-            const result = TimestampConverter.fromTimestamp(num);
+            const result = TimestampConverter.fromTimestamp(num, converterOptions);
             return {
               path,
               originalValue: value,
@@ -176,7 +188,7 @@ export class TimestampScanner {
         const num = parseInt(trimmed);
         if (num >= 946684800 && num <= 4102444800) {
           try {
-            const result = TimestampConverter.fromTimestamp(num);
+            const result = TimestampConverter.fromTimestamp(num, converterOptions);
             return {
               path,
               originalValue: value,
@@ -199,7 +211,7 @@ export class TimestampScanner {
         const num = parseInt(trimmed);
         if (num >= 946684800000 && num <= 4102444800000) {
           try {
-            const result = TimestampConverter.fromTimestamp(num);
+            const result = TimestampConverter.fromTimestamp(num, converterOptions);
             return {
               path,
               originalValue: value,
@@ -222,7 +234,7 @@ export class TimestampScanner {
       const isoPattern = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?(?:Z|[+-]\d{2}:\d{2})$/;
       if (isoPattern.test(trimmed)) {
         try {
-          const result = TimestampConverter.toTimestamp(trimmed);
+          const result = TimestampConverter.toTimestamp(trimmed, converterOptions);
           return {
             path,
             originalValue: value,
@@ -249,7 +261,7 @@ export class TimestampScanner {
       for (const pattern of datetimePatterns) {
         if (pattern.test(trimmed)) {
           try {
-            const result = TimestampConverter.toTimestamp(trimmed);
+            const result = TimestampConverter.toTimestamp(trimmed, converterOptions);
             return {
               path,
               originalValue: value,

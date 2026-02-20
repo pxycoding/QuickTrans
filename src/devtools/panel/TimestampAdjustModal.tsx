@@ -9,13 +9,16 @@ interface TimestampAdjustModalProps {
   onApply: (adjustedTimestamp: number) => void;
   onClose: () => void;
   locale?: 'zh' | 'en';
+  /** 与 popup 选择的时区一致，用于显示/转换时间 */
+  timezone?: string;
 }
 
 const TimestampAdjustModal: React.FC<TimestampAdjustModalProps> = ({
   timestamp,
   onApply,
   onClose,
-  locale = 'zh'
+  locale = 'zh',
+  timezone
 }) => {
   const [timeAdjustments, setTimeAdjustments] = useState({
     year: 0,
@@ -28,14 +31,16 @@ const TimestampAdjustModal: React.FC<TimestampAdjustModalProps> = ({
   const [adjustedResult, setAdjustedResult] = useState<any>(null);
   const [originalTimestamp, setOriginalTimestamp] = useState<number>(timestamp.converted.unixMs);
 
+  const converterOptions = timezone ? { timezone, includeRelative: false } : { includeRelative: false };
+
   useEffect(() => {
     // 初始化原始时间戳
     const originalTs = timestamp.converted.unixMs;
     setOriginalTimestamp(originalTs);
-    const originalResult = TimestampConverter.fromTimestamp(originalTs, { includeRelative: false });
+    const originalResult = TimestampConverter.fromTimestamp(originalTs, converterOptions);
     setAdjustedResult(originalResult);
     setTimeAdjustments({ year: 0, month: 0, day: 0, hour: 0, minute: 0, second: 0 });
-  }, [timestamp]);
+  }, [timestamp, timezone]);
 
   const handleTimeAdjustmentChange = (
     unit: 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second',
@@ -71,7 +76,7 @@ const TimestampAdjustModal: React.FC<TimestampAdjustModalProps> = ({
       date = date.add(adjustments.second, 'second');
 
       const newTs = date.valueOf();
-      const newResult = TimestampConverter.fromTimestamp(newTs, { includeRelative: false });
+      const newResult = TimestampConverter.fromTimestamp(newTs, converterOptions);
       setAdjustedResult(newResult);
     } catch (err) {
       console.error('[TimestampAdjustModal] 调整时间失败:', err);
@@ -80,7 +85,7 @@ const TimestampAdjustModal: React.FC<TimestampAdjustModalProps> = ({
 
   const resetAdjustments = () => {
     setTimeAdjustments({ year: 0, month: 0, day: 0, hour: 0, minute: 0, second: 0 });
-    const originalResult = TimestampConverter.fromTimestamp(originalTimestamp, { includeRelative: false });
+    const originalResult = TimestampConverter.fromTimestamp(originalTimestamp, converterOptions);
     setAdjustedResult(originalResult);
   };
 

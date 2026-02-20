@@ -27,6 +27,32 @@ describe('TimestampConverter', () => {
       expect(result.relative).toBeDefined();
       expect(typeof result.relative).toBe('string');
     });
+
+    it('指定 timezone 时应在该时区下格式化', () => {
+      // 1704067200000 = 2024-01-01 00:00:00 UTC
+      const utc = TimestampConverter.fromTimestamp(1704067200000, {
+        timezone: 'UTC',
+        includeRelative: false,
+      });
+      expect(utc.standard).toBe('2024-01-01 00:00:00');
+      expect(utc.timezone).toBe('UTC');
+
+      const shanghai = TimestampConverter.fromTimestamp(1704067200000, {
+        timezone: 'Asia/Shanghai',
+        includeRelative: false,
+      });
+      expect(shanghai.standard).toBe('2024-01-01 08:00:00');
+      expect(shanghai.timezone).toBe('Asia/Shanghai');
+    });
+
+    it('同一时间戳在不同时区应得到不同 standard 字符串', () => {
+      const ts = 1704067200000; // 2024-01-01 00:00:00 UTC
+      const opts = { includeRelative: false } as const;
+      const rUtc = TimestampConverter.fromTimestamp(ts, { ...opts, timezone: 'UTC' });
+      const rTokyo = TimestampConverter.fromTimestamp(ts, { ...opts, timezone: 'Asia/Tokyo' });
+      expect(rUtc.standard).not.toBe(rTokyo.standard);
+      expect(rTokyo.standard).toBe('2024-01-01 09:00:00'); // UTC+9
+    });
   });
 
   describe('toTimestamp', () => {
