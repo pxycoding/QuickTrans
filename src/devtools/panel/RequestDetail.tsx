@@ -5,6 +5,7 @@ import { TimestampScanner, TimestampMatch } from '../utils/timestampScanner';
 import { UrlExtractor, ExtractedUrl } from '../utils/urlExtractor';
 import { TimestampConverter } from '../../converters/TimestampConverter';
 import { getStoredTimezone, getCurrentTimezone } from '../../utils/timezone';
+import { getTimestampRowDisplay } from '../utils/timestampDisplay';
 import JsonViewer from './JsonViewer';
 import QRCodeViewer from './QRCodeViewer';
 import TimestampAdjustModal from './TimestampAdjustModal';
@@ -27,6 +28,11 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
   const [adjustingTimestampIndex, setAdjustingTimestampIndex] = useState<number | null>(null);
   const [adjustedTimestamps, setAdjustedTimestamps] = useState<Map<number, number>>(new Map());
   const [timezone, setTimezone] = useState<string>(() => getCurrentTimezone());
+
+  // 切换请求时清空当前请求的时间戳调整状态，避免不同请求共用 index 导致误显示“已调整”
+  useEffect(() => {
+    setAdjustedTimestamps(new Map());
+  }, [requestId]);
 
   // 加载请求详情
   useEffect(() => {
@@ -348,29 +354,11 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
                       <tbody>
                         {timestamps.map((ts, idx) => {
                           const adjustedTimestamp = adjustedTimestamps.get(idx);
-                          let displayValue: string;
-                          let displayStandard: string;
-                          let isAdjusted = false;
-                          
-                          if (adjustedTimestamp !== undefined) {
-                            isAdjusted = true;
-                            // 根据原始值类型决定显示秒还是毫秒
-                            const originalStr = String(ts.originalValue);
-                            if (originalStr.length === 10 || (typeof ts.originalValue === 'number' && ts.originalValue < 10000000000)) {
-                              // 原始是秒级时间戳，显示秒
-                              displayValue = Math.floor(adjustedTimestamp / 1000).toString();
-                            } else {
-                              // 原始是毫秒级时间戳，显示毫秒
-                              displayValue = adjustedTimestamp.toString();
-                            }
-                            // 计算调整后的标准时间（使用 popup 选择的时区）
-                            const adjustedResult = TimestampConverter.fromTimestamp(adjustedTimestamp, { timezone, includeRelative: false });
-                            displayStandard = adjustedResult.standard;
-                          } else {
-                            displayValue = String(ts.originalValue);
-                            displayStandard = ts.converted.standard;
-                          }
-                          
+                          const { displayValue, displayStandard, isAdjusted } = getTimestampRowDisplay(
+                            ts,
+                            adjustedTimestamp,
+                            timezone
+                          );
                           return (
                             <tr key={idx}>
                               <td className="timestamp-path">{ts.path}</td>
@@ -388,6 +376,20 @@ const RequestDetail: React.FC<RequestDetailProps> = ({ requestId }) => {
                                 >
                                   {t('network.adjust')}
                                 </button>
+                                {isAdjusted && (
+                                  <button
+                                    onClick={() => {
+                                      setAdjustedTimestamps(prev => {
+                                        const next = new Map(prev);
+                                        next.delete(idx);
+                                        return next;
+                                      });
+                                    }}
+                                    className="restore-btn"
+                                  >
+                                    {t('network.restore')}
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => navigator.clipboard.writeText(displayStandard)}
                                   className="copy-btn"

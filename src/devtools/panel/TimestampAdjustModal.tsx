@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import dayjs from 'dayjs';
 import { TimestampConverter } from '../../converters/TimestampConverter';
 import { TimestampMatch } from '../utils/timestampScanner';
+import { applyTimestampAdjustments } from '../utils/timestampAdjust';
 import './TimestampAdjustModal.css';
 
 interface TimestampAdjustModalProps {
@@ -64,18 +64,7 @@ const TimestampAdjustModal: React.FC<TimestampAdjustModalProps> = ({
 
   const applyTimeAdjustment = (adjustments: typeof timeAdjustments) => {
     try {
-      // 基于原始时间戳应用所有调整
-      let date = dayjs(originalTimestamp);
-
-      // 应用所有调整
-      date = date.add(adjustments.year, 'year');
-      date = date.add(adjustments.month, 'month');
-      date = date.add(adjustments.day, 'day');
-      date = date.add(adjustments.hour, 'hour');
-      date = date.add(adjustments.minute, 'minute');
-      date = date.add(adjustments.second, 'second');
-
-      const newTs = date.valueOf();
+      const newTs = applyTimestampAdjustments(originalTimestamp, adjustments);
       const newResult = TimestampConverter.fromTimestamp(newTs, converterOptions);
       setAdjustedResult(newResult);
     } catch (err) {

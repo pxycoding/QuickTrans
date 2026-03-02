@@ -528,11 +528,13 @@
 .param-key {
   font-weight: 600;
   color: #2d3436;
+  text-transform: none; /* 保持 URL 参数 key 原始大小写，不继承 section label 的 uppercase */
 }
 
 .param-value {
   color: #636e72;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  text-transform: none;
 }
 
 .regenerated-qrcode-section {

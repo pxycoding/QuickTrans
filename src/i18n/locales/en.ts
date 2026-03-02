@@ -205,7 +205,8 @@ export const en = {
     relative: 'Relative',
     actions: 'Actions',
     adjust: 'Adjust',
-    copy: 'Copy'
+    copy: 'Copy',
+    restore: 'Restore'
   }
 };
 

@@ -60,6 +60,29 @@ describe('ContentDetector', () => {
       expect(r.type).toBe(ContentType.URL);
     });
 
+    it('应识别带 query 的相对路径（有前导 /）', () => {
+      const r = ContentDetector.detect('/page/list?env=test');
+      expect(r.type).toBe(ContentType.URL);
+      expect(r.value).toBe('/page/list?env=test');
+      expect(r.confidence).toBeGreaterThanOrEqual(0.8);
+    });
+
+    it('应识别带 query 的相对路径（无前导 /）', () => {
+      const r = ContentDetector.detect('page/list?env=test');
+      expect(r.type).toBe(ContentType.URL);
+    });
+
+    it('应识别无 query 的绝对路径', () => {
+      const r = ContentDetector.detect('/page/list');
+      expect(r.type).toBe(ContentType.URL);
+    });
+
+    it('应识别无前导 / 且无 query 的路径', () => {
+      const r = ContentDetector.detect('page/list');
+      expect(r.type).toBe(ContentType.URL);
+      expect(r.value).toBe('page/list');
+    });
+
     it('纯文本应识别为 UNKNOWN', () => {
       const r = ContentDetector.detect('hello world');
       expect(r.type).toBe(ContentType.UNKNOWN);

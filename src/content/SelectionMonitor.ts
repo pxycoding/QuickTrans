@@ -33,37 +33,31 @@ export class SelectionMonitor {
 
     if (!text || text.length === 0) {
       this.hideActionButton();
+      this.sendContextMenuUpdate(false, false);
       return;
     }
 
-    // 检测内容类型
     const result = ContentDetector.detect(text);
-
-    // URL类型的悬浮按钮已移除，改由右键菜单触发
     this.hideActionButton();
-    
-    // 发送内容类型检测结果到background，用于更新右键菜单
-    const isTimestamp = result.type === ContentType.TIMESTAMP_SECOND || 
+
+    const isTimestamp = result.type === ContentType.TIMESTAMP_SECOND ||
                        result.type === ContentType.TIMESTAMP_MILLISECOND ||
                        result.type === ContentType.DATETIME;
     const isURL = result.type === ContentType.URL;
-    
-    // 检查扩展上下文是否有效
+    this.sendContextMenuUpdate(isTimestamp, isURL);
+  }
+
+  private sendContextMenuUpdate(isTimestamp: boolean, isURL: boolean) {
     try {
       if (!chrome?.runtime?.id) {
         console.warn('[SelectionMonitor] 扩展上下文无效，跳过发送消息');
         return;
       }
-      
       chrome.runtime.sendMessage({
         type: 'UPDATE_CONTEXT_MENU',
-        payload: {
-          isTimestamp,
-          isURL
-        }
+        payload: { isTimestamp, isURL }
       }).catch(error => {
-        // 检查是否是扩展上下文失效错误
-        if (error?.message?.includes('Extension context invalidated') || 
+        if (error?.message?.includes('Extension context invalidated') ||
             chrome.runtime.lastError?.message?.includes('Extension context invalidated')) {
           console.warn('[SelectionMonitor] 扩展上下文已失效，可能需要重新加载页面');
         } else {
@@ -71,7 +65,6 @@ export class SelectionMonitor {
         }
       });
     } catch (error) {
-      // 捕获同步错误（如 chrome.runtime 未定义）
       if (error instanceof Error && error.message.includes('Extension context invalidated')) {
         console.warn('[SelectionMonitor] 扩展上下文已失效');
       } else {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import dayjs from 'dayjs';
 import { FloatWindow } from './FloatWindow';
 import { Button } from './Button';
@@ -8,18 +8,49 @@ import { CalendarIcon, XIcon, CheckIcon, CopyIcon } from './Icons';
 import { useI18n } from '../i18n/useI18n';
 import './TimestampPanel.css';
 
+/** 时间调整量，与 FloatWindowManager.TimeAdjustments 一致 */
+export interface TimeAdjustmentsShape {
+  year: number;
+  month: number;
+  day: number;
+  hour: number;
+  minute: number;
+  second: number;
+}
+
+const ZERO_ADJUSTMENTS: TimeAdjustmentsShape = {
+  year: 0,
+  month: 0,
+  day: 0,
+  hour: 0,
+  minute: 0,
+  second: 0
+};
+
 interface TimestampPanelProps {
   value: string;
   type: ContentType;
   onClose: () => void;
   windowId?: string; // 窗口唯一ID，用于跨tab同步
+  /** 用户输入或转换成功后回调，用于刷新后恢复 popup 内输入的内容 */
+  onValueChange?: (value: string, contentType: ContentType) => void;
+  /** 恢复时传入的时间调整量（刷新后恢复） */
+  initialTimeAdjustments?: TimeAdjustmentsShape;
+  /** 用户修改时间调整后回调，用于刷新后恢复 */
+  onTimeAdjustmentsChange?: (adjustments: TimeAdjustmentsShape) => void;
 }
+
+const VALUE_SYNC_DEBOUNCE_MS = 500;
+const TIME_ADJUSTMENTS_DEBOUNCE_MS = 400;
 
 export const TimestampPanel: React.FC<TimestampPanelProps> = ({
   value,
   type,
   onClose,
-  windowId
+  windowId,
+  onValueChange,
+  initialTimeAdjustments,
+  onTimeAdjustmentsChange
 }) => {
   console.log('[TimestampPanel] 组件渲染，props:', { value, type });
   const { t } = useI18n();
@@ -28,15 +59,11 @@ export const TimestampPanel: React.FC<TimestampPanelProps> = ({
   const [copied, setCopied] = useState<string>('');
   const [currentTimestamp, setCurrentTimestamp] = useState<number | null>(null);
   const [originalTimestamp, setOriginalTimestamp] = useState<number | null>(null);
-  const [timeAdjustments, setTimeAdjustments] = useState({
-    year: 0,
-    month: 0,
-    day: 0,
-    hour: 0,
-    minute: 0,
-    second: 0
-  });
+  const [timeAdjustments, setTimeAdjustments] = useState<TimeAdjustmentsShape>(
+    () => initialTimeAdjustments ?? ZERO_ADJUSTMENTS
+  );
   const [inputValue, setInputValue] = useState(value || '');
+  const lastResolvedTypeRef = useRef<ContentType>(type);
 
   // 当外部 value 变化时，同步到 inputValue
   useEffect(() => {
@@ -44,6 +71,15 @@ export const TimestampPanel: React.FC<TimestampPanelProps> = ({
       setInputValue(value);
     }
   }, [value]);
+
+  // 用户输入时防抖回写快照（popup 内输入后刷新可恢复）
+  useEffect(() => {
+    if (!onValueChange || !windowId) return;
+    const timer = window.setTimeout(() => {
+      onValueChange(inputValue, lastResolvedTypeRef.current);
+    }, VALUE_SYNC_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [inputValue, onValueChange, windowId]);
 
   useEffect(() => {
     console.log('[TimestampPanel] 开始转换，value:', value, 'type:', type);
@@ -66,10 +102,33 @@ export const TimestampPanel: React.FC<TimestampPanelProps> = ({
       }
 
       console.log('[TimestampPanel] 转换成功:', convertedResult);
-      setResult(convertedResult);
-      setCurrentTimestamp(convertedResult.unixMs);
+      lastResolvedTypeRef.current = type;
       setOriginalTimestamp(convertedResult.unixMs);
-      setTimeAdjustments({ year: 0, month: 0, day: 0, hour: 0, minute: 0, second: 0 });
+      const adj = initialTimeAdjustments ?? ZERO_ADJUSTMENTS;
+      setTimeAdjustments(adj);
+      const hasAdjustment =
+        adj.year !== 0 ||
+        adj.month !== 0 ||
+        adj.day !== 0 ||
+        adj.hour !== 0 ||
+        adj.minute !== 0 ||
+        adj.second !== 0;
+      if (hasAdjustment) {
+        let date = dayjs(convertedResult.unixMs);
+        date = date
+          .add(adj.year, 'year')
+          .add(adj.month, 'month')
+          .add(adj.day, 'day')
+          .add(adj.hour, 'hour')
+          .add(adj.minute, 'minute')
+          .add(adj.second, 'second');
+        const adjustedResult = TimestampConverter.fromTimestamp(date.valueOf(), { includeRelative: false });
+        setResult(adjustedResult);
+        setCurrentTimestamp(date.valueOf());
+      } else {
+        setResult(convertedResult);
+        setCurrentTimestamp(convertedResult.unixMs);
+      }
       setError('');
     } catch (err) {
       console.error('[TimestampPanel] 转换失败:', err);
@@ -77,7 +136,16 @@ export const TimestampPanel: React.FC<TimestampPanelProps> = ({
       setResult(null);
       setCurrentTimestamp(null);
     }
-  }, [value, type]);
+  }, [value, type, initialTimeAdjustments]);
+
+  // 时间调整变化时防抖回写快照（刷新后恢复）
+  useEffect(() => {
+    if (!onTimeAdjustmentsChange || !windowId) return;
+    const timer = window.setTimeout(() => {
+      onTimeAdjustmentsChange(timeAdjustments);
+    }, TIME_ADJUSTMENTS_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [timeAdjustments, onTimeAdjustmentsChange, windowId]);
 
   const handleTimeAdjustmentChange = (unit: 'year' | 'month' | 'day' | 'hour' | 'minute' | 'second', value: string) => {
     // 如果输入为空，设置为 0
@@ -186,11 +254,13 @@ export const TimestampPanel: React.FC<TimestampPanelProps> = ({
         convertedResult = TimestampConverter.toTimestamp(inputValue.trim(), { includeRelative: false });
       }
 
+      lastResolvedTypeRef.current = detectionResult.type;
       setResult(convertedResult);
       setCurrentTimestamp(convertedResult.unixMs);
       setOriginalTimestamp(convertedResult.unixMs);
       setTimeAdjustments({ year: 0, month: 0, day: 0, hour: 0, minute: 0, second: 0 });
       setError('');
+      onValueChange?.(inputValue.trim(), detectionResult.type);
     } catch (err) {
       console.error('[TimestampPanel] 转换失败:', err);
       setError(err instanceof Error ? err.message : t('timestamp.convertFailed'));

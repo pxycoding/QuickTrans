@@ -21,7 +21,7 @@ export interface FloatWindowProps {
   windowName?: string;
   isEditingName?: boolean;
   onNameInput?: (value: string) => void;
-  onNameSave?: () => void;
+  onNameSave?: (name: string) => void;
   onNameCancel?: () => void;
   onHeaderDoubleClick?: () => void;
 }
@@ -134,15 +134,15 @@ export const FloatWindow: React.FC<FloatWindowProps> = ({
     }
   };
 
-  // 保存名称
+  // 保存名称（失焦或按 Enter 时调用，将当前 editingName 传给父组件保存）
   const handleSaveName = (e?: React.MouseEvent | React.KeyboardEvent) => {
     if (e) {
       e.stopPropagation();
     }
     if (_onNameSave && _onNameInput) {
-      // 如果有外部回调，使用外部回调保存
+      // 如果有外部回调，传入当前编辑中的名称，避免依赖父组件异步 state 更新
       _onNameInput(editingName);
-      _onNameSave();
+      _onNameSave(editingName);
     } else {
       // 如果没有外部回调，使用本地状态保存
       setLocalTitle(editingName);
@@ -177,15 +177,12 @@ export const FloatWindow: React.FC<FloatWindowProps> = ({
     return length;
   };
 
-  // 处理输入框内容变化
+  // 处理输入框内容变化（仅更新本地状态，不通知父组件，避免父组件重渲染导致 input 失焦并触发 onBlur 保存）
   const handleNameInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value;
     // 检查长度限制（最大20个长度单位，即10个中文或20个英文）
     if (getCharLength(newValue) <= 20) {
       setEditingName(newValue);
-      if (_onNameInput) {
-        _onNameInput(newValue);
-      }
     }
   };
 
@@ -241,13 +238,16 @@ export const FloatWindow: React.FC<FloatWindowProps> = ({
     });
   };
 
-  // 拖拽中
+  // 拖拽中（边界按当前实际尺寸计算：最小化时 240x280，展开时用 size）
+  const effectiveWidth = isMinimized ? 240 : size.width;
+  const effectiveHeight = isMinimized ? 280 : size.height;
+
   useEffect(() => {
     if (!isDragging) return;
 
     const handleMouseMove = (e: MouseEvent) => {
-      const newX = Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth - size.width));
-      const newY = Math.max(0, Math.min(e.clientY - dragOffset.y, window.innerHeight - size.height));
+      const newX = Math.max(0, Math.min(e.clientX - dragOffset.x, window.innerWidth - effectiveWidth));
+      const newY = Math.max(0, Math.min(e.clientY - dragOffset.y, window.innerHeight - effectiveHeight));
       setPosition({ x: newX, y: newY });
     };
 
@@ -269,7 +269,7 @@ export const FloatWindow: React.FC<FloatWindowProps> = ({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isDragging, dragOffset, position, size.width, size.height, windowId]);
+  }, [isDragging, dragOffset, position, effectiveWidth, effectiveHeight, windowId]);
 
   // 调整大小开始
   const handleResizeStart = (e: React.MouseEvent, handle: 'bottom-left' | 'bottom-right') => {

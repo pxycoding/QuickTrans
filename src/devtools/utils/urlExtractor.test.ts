@@ -27,6 +27,13 @@ describe('UrlExtractor', () => {
     it('无 URL 时返回空数组', () => {
       expect(UrlExtractor.extractFromText('no url here')).toEqual([]);
     });
+
+    it('应提取相对路径（含 path?query 与 path/path）', () => {
+      const text = 'redirect to /page/list?env=test or page/detail?id=1';
+      const urls = UrlExtractor.extractFromText(text);
+      expect(urls.some(u => u.url === '/page/list?env=test')).toBe(true);
+      expect(urls.some(u => u.url === 'page/detail?id=1')).toBe(true);
+    });
   });
 
   describe('extractFromJson', () => {
@@ -35,6 +42,13 @@ describe('UrlExtractor', () => {
       const urls = UrlExtractor.extractFromJson(obj);
       expect(urls.length).toBeGreaterThanOrEqual(2);
       expect(urls.some(u => u.url === 'https://example.com' && u.path === 'link')).toBe(true);
+    });
+
+    it('应提取相对路径字符串', () => {
+      const obj = { path: '/page/list?env=test', action: 'page/detail' };
+      const urls = UrlExtractor.extractFromJson(obj);
+      expect(urls.some(u => u.url === '/page/list?env=test' && u.path === 'path')).toBe(true);
+      expect(urls.some(u => u.url === 'page/detail' && u.path === 'action')).toBe(true);
     });
 
     it('null/undefined 应返回空数组', () => {

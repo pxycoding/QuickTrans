@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { QRCodeGenerator } from '../../converters/QRCodeGenerator';
 import { QueryParamConfigManager } from '../../utils/QueryParamConfigManager';
 import { QueryParamConfig } from '../../types';
-import { applyParamsToUrl, isParamInUrl } from '../utils/urlParamApplier';
+import { applyParamsToUrl, extractParamsFromUrl, isParamInUrl, parsePathAndQuery } from '../utils/urlParamApplier';
 import './QRCodeViewer.css';
 
 interface QRCodeViewerProps {
@@ -18,25 +18,28 @@ const QRCodeViewer: React.FC<QRCodeViewerProps> = ({ url, locale = 'zh' }) => {
   const [selectedParams, setSelectedParams] = useState<Set<string>>(new Set());
   const [finalUrl, setFinalUrl] = useState<string>(url);
 
-  // 加载用户配置的参数
+  // 解析原链接的 query 参数（用于展示与勾选）
+  const urlParams = React.useMemo(() => extractParamsFromUrl(url), [url]);
+
+  // 加载用户配置的常用参数
   useEffect(() => {
-    const loadConfigs = async () => {
-      const loadedConfigs = await QueryParamConfigManager.getConfigs();
-      setConfigs(loadedConfigs);
-      
-      // 初始化选中状态：URL 中已存在的参数默认选中
-      const initialSelected = new Set<string>();
-      loadedConfigs.forEach(config => {
-        config.params.forEach(param => {
-          if (isParamInUrl(url, param.key)) {
-            initialSelected.add(`${param.key}=${param.value}`);
-          }
-        });
+    QueryParamConfigManager.getConfigs().then(setConfigs);
+  }, []);
+
+  // url 或 configs 变化时初始化选中状态：原链接参数默认全选，常用参数中在 URL 里的选中
+  useEffect(() => {
+    const parsed = extractParamsFromUrl(url);
+    const initialSelected = new Set<string>();
+    parsed.forEach(p => initialSelected.add(`${p.key}=${p.value}`));
+    configs.forEach(config => {
+      config.params.forEach(param => {
+        if (isParamInUrl(url, param.key)) {
+          initialSelected.add(`${param.key}=${param.value}`);
+        }
       });
-      setSelectedParams(initialSelected);
-    };
-    loadConfigs();
-  }, [url]);
+    });
+    setSelectedParams(initialSelected);
+  }, [url, configs]);
 
   // 生成二维码的函数
   const generateQRCode = useCallback(async (targetUrl: string) => {
@@ -55,15 +58,24 @@ const QRCodeViewer: React.FC<QRCodeViewerProps> = ({ url, locale = 'zh' }) => {
     }
   }, []);
 
-  // 计算最终 URL
+  // 计算最终 URL：仅包含选中的参数（原链接参数 + 常用参数）
   useEffect(() => {
-    const allParams = configs.flatMap(config => config.params);
-    const selected = allParams.filter(param => 
+    const commonParams = configs.flatMap(config => config.params);
+    const allParams = [...urlParams, ...commonParams];
+    const selected = allParams.filter(param =>
       selectedParams.has(`${param.key}=${param.value}`)
     );
-    const newUrl = applyParamsToUrl(url, selected);
+    let baseUrl = url;
+    try {
+      const u = new URL(url);
+      baseUrl = u.origin + u.pathname;
+    } catch {
+      // 相对路径（如 /page/list?env=test）时只保留 pathname，便于 applyParamsToUrl 拼接参数
+      baseUrl = parsePathAndQuery(url).pathname;
+    }
+    const newUrl = applyParamsToUrl(baseUrl, selected);
     setFinalUrl(newUrl);
-  }, [url, configs, selectedParams]);
+  }, [url, urlParams, configs, selectedParams]);
 
   // 当最终 URL 变化时，重新生成二维码
   useEffect(() => {
@@ -104,11 +116,14 @@ const QRCodeViewer: React.FC<QRCodeViewerProps> = ({ url, locale = 'zh' }) => {
     }
   };
 
-  // 获取所有可用的参数（去重）
-  const allParams = configs.flatMap(config => config.params);
-  const uniqueParams = Array.from(
-    new Map(allParams.map(p => [`${p.key}=${p.value}`, p])).values()
+  // 常用参数（去重）
+  const commonParamsList = configs.flatMap(config => config.params);
+  const uniqueCommonParams = Array.from(
+    new Map(commonParamsList.map(p => [`${p.key}=${p.value}`, p])).values()
   );
+  const hasUrlParams = urlParams.length > 0;
+  const hasCommonParams = uniqueCommonParams.length > 0;
+  const hasAnyParams = hasUrlParams || hasCommonParams;
 
   if (loading) {
     return (
@@ -160,35 +175,70 @@ const QRCodeViewer: React.FC<QRCodeViewerProps> = ({ url, locale = 'zh' }) => {
             <div className="qrcode-url-display" title={finalUrl}>
               {finalUrl}
             </div>
-            {uniqueParams.length > 0 && (
+            {hasAnyParams && (
               <>
-                <div className="qrcode-params-label">
-                  {locale === 'zh' ? '参数选择' : 'Parameters'}
-                </div>
-                <div className="qrcode-params-scroll">
-                  <div className="qrcode-params-list">
-                    {uniqueParams.map((param, index) => {
-                      const paramKey = `${param.key}=${param.value}`;
-                      const isSelected = selectedParams.has(paramKey);
-                      return (
-                        <label
-                          key={index}
-                          className={`qrcode-param-item ${isSelected ? 'selected' : ''}`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleParamToggle(param.key, param.value)}
-                            className="qrcode-param-checkbox"
-                          />
-                          <span className="qrcode-param-key">{param.key}</span>
-                          <span className="qrcode-param-separator">=</span>
-                          <span className="qrcode-param-value">{param.value}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
+                {hasUrlParams && (
+                  <>
+                    <div className="qrcode-params-label">
+                      {locale === 'zh' ? '原链接参数' : 'URL Params'}
+                    </div>
+                    <div className="qrcode-params-scroll">
+                      <div className="qrcode-params-list">
+                        {urlParams.map((param, index) => {
+                          const paramKey = `${param.key}=${param.value}`;
+                          const isSelected = selectedParams.has(paramKey);
+                          return (
+                            <label
+                              key={`url-${index}`}
+                              className={`qrcode-param-item ${isSelected ? 'selected' : ''}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleParamToggle(param.key, param.value)}
+                                className="qrcode-param-checkbox"
+                              />
+                              <span className="qrcode-param-key">{param.key}</span>
+                              <span className="qrcode-param-separator">=</span>
+                              <span className="qrcode-param-value">{param.value}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+                {hasCommonParams && (
+                  <>
+                    <div className="qrcode-params-label">
+                      {locale === 'zh' ? '常用参数' : 'Common Params'}
+                    </div>
+                    <div className="qrcode-params-scroll">
+                      <div className="qrcode-params-list">
+                        {uniqueCommonParams.map((param, index) => {
+                          const paramKey = `${param.key}=${param.value}`;
+                          const isSelected = selectedParams.has(paramKey);
+                          return (
+                            <label
+                              key={`common-${index}`}
+                              className={`qrcode-param-item ${isSelected ? 'selected' : ''}`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleParamToggle(param.key, param.value)}
+                                className="qrcode-param-checkbox"
+                              />
+                              <span className="qrcode-param-key">{param.key}</span>
+                              <span className="qrcode-param-separator">=</span>
+                              <span className="qrcode-param-value">{param.value}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>

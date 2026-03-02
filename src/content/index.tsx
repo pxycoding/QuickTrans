@@ -15,126 +15,124 @@ new SelectionMonitor();
 console.log('[QA Booster] 初始化 FloatWindowManager...');
 const floatWindowManager = new FloatWindowManager();
 
-// 监听storage变化，实现跨tab同步
-chrome.storage.onChanged.addListener((changes, namespace) => {
-  if (namespace === 'local') {
-    // 检查是否有新的活动窗口
-    if (changes.activeWindows) {
-      const newWindows = changes.activeWindows.newValue || [];
-      const oldWindows = changes.activeWindows.oldValue || [];
-      
-      // 找出新增的窗口
-      const addedWindows = newWindows.filter((id: string) => !oldWindows.includes(id));
-      
-      // 找出被移除的窗口
-      const removedWindows = oldWindows.filter((id: string) => !newWindows.includes(id));
-      
-      // 移除已关闭的窗口
-      for (const windowId of removedWindows) {
-        floatWindowManager.close(windowId);
-      }
-      
-      // 添加新窗口
-      for (const windowId of addedWindows) {
-        const dataKey = `qrCodeWindowData_${windowId}`;
-        const stateKey = `qrCodeWindowState_${windowId}`;
-        chrome.storage.local.get([dataKey, stateKey], (data) => {
-          const windowData = data[dataKey];
-          const windowState = data[stateKey];
-          if (windowData) {
-            const { url, imageUrl } = windowData;
-            const minimized = windowState?.minimized || false;
-            const existingWindows = floatWindowManager.getActiveWindows();
-            
-            // 如果窗口不存在，则创建
-            if (!existingWindows.includes(windowId)) {
-              if (url) {
-                // 从storage恢复的窗口，如果没有imageUrl，可能是从popup进入的，显示模式切换按钮
-                floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, url, minimized, windowId, !imageUrl).catch(console.error);
-              } else if (imageUrl) {
-                // 从storage恢复的窗口，有imageUrl说明是从右键菜单（解码）进入的，不显示模式切换按钮
-                floatWindowManager.showQRCodeDecoderPanel(imageUrl, undefined, url, minimized, windowId, false).catch(console.error);
-              }
-            }
-          }
-        });
-      }
-    }
-    
-    // 监听窗口状态变化（最小化/展开）
-    for (const key in changes) {
-      if (key.startsWith('qrCodeWindowState_')) {
-        const windowId = key.replace('qrCodeWindowState_', '');
-        const newState = changes[key].newValue;
-        if (newState && newState.minimized !== undefined) {
-          // 状态变化会通过React组件自动处理，这里只需要确保窗口存在
-          syncAllWindows();
-        }
-      }
-      
-      // 监听窗口位置变化
-      if (key.startsWith('floatWindowPosition_')) {
-        // 位置变化会通过React组件自动处理
-      }
-    }
-  }
-});
-
-// 同步所有活动窗口的函数
-const syncAllWindows = () => {
-  chrome.storage.local.get(['activeWindows'], (result) => {
-    const activeWindows = result.activeWindows || [];
-    if (activeWindows.length > 0) {
-      console.log('[QA Booster] 同步窗口:', activeWindows);
-      
-      for (const windowId of activeWindows) {
-        const dataKey = `qrCodeWindowData_${windowId}`;
-        const stateKey = `qrCodeWindowState_${windowId}`;
-        const positionKey = `floatWindowPosition_${windowId}`;
-        
-        chrome.storage.local.get([dataKey, stateKey, positionKey], (data) => {
-          const windowData = data[dataKey];
-          const windowState = data[stateKey];
-          
-          if (windowData) {
-            const { url, imageUrl } = windowData;
-            const minimized = windowState?.minimized || false;
-            
-            const existingWindows = floatWindowManager.getActiveWindows();
-            if (!existingWindows.includes(windowId)) {
-              if (url) {
-                floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, url, minimized, windowId).catch(console.error);
-              } else if (imageUrl) {
-                floatWindowManager.showQRCodeDecoderPanel(imageUrl, undefined, url, minimized, windowId).catch(console.error);
-              }
-            }
-          }
-        });
-      }
-    }
+/** 获取当前 tab id（缓存），用于按 tab 记录/恢复悬浮窗 */
+let cachedTabId: number | null = null;
+function getTabId(): Promise<number | null> {
+  if (cachedTabId != null) return Promise.resolve(cachedTabId);
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage({ type: 'GET_TAB_ID' }, (res: { tabId?: number } | undefined) => {
+      const id = res?.tabId ?? null;
+      if (id != null) cachedTabId = id;
+      resolve(id);
+    });
   });
-};
-
-// 页面加载时同步所有窗口
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', syncAllWindows);
-} else {
-  syncAllWindows();
 }
 
-// 当tab变为可见时同步窗口（切换tab时）
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden) {
-    console.log('[QA Booster] Tab变为可见，同步窗口');
-    syncAllWindows();
-  }
-});
+// 当前 tab 刷新后恢复之前打开的悬浮窗（仅恢复本 tab）
+function restoreTabWindowsOnLoad() {
+  getTabId().then((tabId) => {
+    if (tabId != null) {
+      floatWindowManager.restoreTabWindows(tabId).catch(console.error);
+    }
+  });
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', restoreTabWindowsOnLoad);
+} else {
+  restoreTabWindowsOnLoad();
+}
 
-// 窗口获得焦点时同步（切换回浏览器时）
-window.addEventListener('focus', () => {
-  console.log('[QA Booster] 窗口获得焦点，同步窗口');
-  syncAllWindows();
-});
+// [已禁用] 在别的 tab 里恢复悬浮窗：监听 storage 变化实现跨 tab 同步
+// chrome.storage.onChanged.addListener((changes, namespace) => {
+//   if (namespace === 'local') {
+//     if (changes.activeWindows) {
+//       const newWindows = changes.activeWindows.newValue || [];
+//       const oldWindows = changes.activeWindows.oldValue || [];
+//       const addedWindows = newWindows.filter((id: string) => !oldWindows.includes(id));
+//       const removedWindows = oldWindows.filter((id: string) => !newWindows.includes(id));
+//       for (const windowId of removedWindows) {
+//         floatWindowManager.close(windowId);
+//       }
+//       for (const windowId of addedWindows) {
+//         const dataKey = `qrCodeWindowData_${windowId}`;
+//         const stateKey = `qrCodeWindowState_${windowId}`;
+//         chrome.storage.local.get([dataKey, stateKey], (data) => {
+//           const windowData = data[dataKey];
+//           const windowState = data[stateKey];
+//           if (windowData) {
+//             const { url, imageUrl } = windowData;
+//             const minimized = windowState?.minimized || false;
+//             const existingWindows = floatWindowManager.getActiveWindows();
+//             if (!existingWindows.includes(windowId)) {
+//               if (url) {
+//                 floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, url, minimized, windowId, !imageUrl).catch(console.error);
+//               } else if (imageUrl) {
+//                 floatWindowManager.showQRCodeDecoderPanel(imageUrl, undefined, url, minimized, windowId, false).catch(console.error);
+//               }
+//             }
+//           }
+//         });
+//       }
+//     }
+//     for (const key in changes) {
+//       if (key.startsWith('qrCodeWindowState_')) {
+//         const newState = changes[key].newValue;
+//         if (newState && newState.minimized !== undefined) {
+//           syncAllWindows();
+//         }
+//       }
+//     }
+//   }
+// });
+
+// [已禁用] 在别的 tab 里恢复悬浮窗：同步所有活动窗口到当前 tab
+// const syncAllWindows = () => {
+//   chrome.storage.local.get(['activeWindows'], (result) => {
+//     const activeWindows = result.activeWindows || [];
+//     if (activeWindows.length > 0) {
+//       for (const windowId of activeWindows) {
+//         const dataKey = `qrCodeWindowData_${windowId}`;
+//         const stateKey = `qrCodeWindowState_${windowId}`;
+//         const positionKey = `floatWindowPosition_${windowId}`;
+//         chrome.storage.local.get([dataKey, stateKey, positionKey], (data) => {
+//           const windowData = data[dataKey];
+//           const windowState = data[stateKey];
+//           if (windowData) {
+//             const { url, imageUrl } = windowData;
+//             const minimized = windowState?.minimized || false;
+//             const existingWindows = floatWindowManager.getActiveWindows();
+//             if (!existingWindows.includes(windowId)) {
+//               if (url) {
+//                 floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, url, minimized, windowId).catch(console.error);
+//               } else if (imageUrl) {
+//                 floatWindowManager.showQRCodeDecoderPanel(imageUrl, undefined, url, minimized, windowId).catch(console.error);
+//               }
+//             }
+//           }
+//         });
+//       }
+//     }
+//   });
+// };
+
+// [已禁用] 页面加载时同步所有窗口
+// if (document.readyState === 'loading') {
+//   document.addEventListener('DOMContentLoaded', syncAllWindows);
+// } else {
+//   syncAllWindows();
+// }
+
+// [已禁用] 当 tab 变为可见时同步窗口（切换 tab 时）
+// document.addEventListener('visibilitychange', () => {
+//   if (!document.hidden) {
+//     syncAllWindows();
+//   }
+// });
+
+// [已禁用] 窗口获得焦点时同步（切换回浏览器时）
+// window.addEventListener('focus', () => {
+//   syncAllWindows();
+// });
 
 // 监听操作事件
 console.log('[QA Booster] 注册 qa-booster-action 事件监听器...');
@@ -158,10 +156,14 @@ window.addEventListener('qa-booster-action', ((e: CustomEvent) => {
       type === ContentType.TIMESTAMP_MILLISECOND ||
       type === ContentType.DATETIME) {
     console.log('[QA Booster] 显示时间戳转换面板');
-    floatWindowManager.showTimestampPanel(value, type).catch(console.error);
+    getTabId().then((tabId) =>
+      floatWindowManager.showTimestampPanel(value, type, false, undefined, tabId ?? undefined)
+    ).catch(console.error);
   } else if (type === ContentType.URL) {
     console.log('[QA Booster] 显示二维码生成面板');
-    floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, value, false, undefined, true).catch(console.error);
+    getTabId().then((tabId) =>
+      floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, value, false, undefined, true, tabId ?? undefined)
+    ).catch(console.error);
   } else {
     console.warn('[QA Booster] 未知的内容类型:', type);
   }
@@ -202,7 +204,9 @@ if (chrome?.runtime?.onMessage) {
   } else if (message.type === 'DECODE_QRCODE') {
     const { imageUrl, imageFile } = message.payload;
     console.log('[QA Booster] 显示二维码识别面板:', { imageUrl, imageFile });
-    floatWindowManager.showQRCodeDecoderPanel(imageUrl, imageFile, undefined, false, undefined, false).catch(console.error);
+    getTabId().then((tabId) =>
+      floatWindowManager.showQRCodeDecoderPanel(imageUrl, imageFile, undefined, false, undefined, false, tabId ?? undefined)
+    ).catch(console.error);
     sendResponse({ success: true });
   } else if (message.type === 'CONVERT_TIMESTAMP') {
     const { selectionText } = message.payload;
@@ -211,7 +215,9 @@ if (chrome?.runtime?.onMessage) {
     // 如果为空，直接打开面板让用户输入
     if (!selectionText || !selectionText.trim()) {
       console.log('[QA Booster] 打开空的时间戳转换面板，让用户输入');
-      floatWindowManager.showTimestampPanel('', ContentType.UNKNOWN).catch(console.error);
+      getTabId().then((tabId) =>
+        floatWindowManager.showTimestampPanel('', ContentType.UNKNOWN, false, undefined, tabId ?? undefined)
+      ).catch(console.error);
       sendResponse({ success: true });
       return true;
     }
@@ -225,7 +231,9 @@ if (chrome?.runtime?.onMessage) {
         sendResponse({ success: false, error: t('errors.unrecognizedTimestamp') });
       } else {
         console.log('[QA Booster] 显示时间戳转换面板:', { value: selectionText, type: detectionResult.type });
-        floatWindowManager.showTimestampPanel(selectionText, detectionResult.type).catch(console.error);
+        getTabId().then((tabId) =>
+          floatWindowManager.showTimestampPanel(selectionText, detectionResult.type, false, undefined, tabId ?? undefined)
+        ).catch(console.error);
         sendResponse({ success: true });
       }
     }).catch(error => {
@@ -245,7 +253,9 @@ if (chrome?.runtime?.onMessage) {
     // 如果为空，直接打开面板让用户输入
     if (!selectionText || !selectionText.trim()) {
       console.log('[QA Booster] 打开空的二维码生成面板，让用户输入');
-      floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, '', false, undefined, showModeSwitcher).catch(console.error);
+      getTabId().then((tabId) =>
+        floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, '', false, undefined, showModeSwitcher, tabId ?? undefined)
+      ).catch(console.error);
       sendResponse({ success: true });
       return true;
     }
@@ -257,7 +267,9 @@ if (chrome?.runtime?.onMessage) {
         // 二维码可以处理URL和其他文本内容
         if (detectionResult.type === ContentType.URL || detectionResult.type === ContentType.UNKNOWN) {
           console.log('[QA Booster] 显示二维码生成面板:', { value: selectionText });
-          floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, selectionText, false, undefined, showModeSwitcher).catch(console.error);
+          getTabId().then((tabId) =>
+            floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, selectionText, false, undefined, showModeSwitcher, tabId ?? undefined)
+          ).catch(console.error);
           sendResponse({ success: true });
         } else {
           console.warn('[QA Booster] 无法生成二维码的内容类型:', selectionText);
@@ -270,44 +282,35 @@ if (chrome?.runtime?.onMessage) {
     
     // 返回true表示异步处理
     return true;
-  } else if (message.type === 'SYNC_WINDOWS') {
-    // 跨tab同步所有窗口
-    console.log('[QA Booster] 同步窗口状态');
-    
-    chrome.storage.local.get(['activeWindows'], async (result) => {
-      const activeWindows = result.activeWindows || [];
-      console.log('[QA Booster] 活动窗口列表:', activeWindows);
-      
-      for (const windowId of activeWindows) {
-        const dataKey = `qrCodeWindowData_${windowId}`;
-        const stateKey = `qrCodeWindowState_${windowId}`;
-        
-        chrome.storage.local.get([dataKey, stateKey], (data) => {
-          const windowData = data[dataKey];
-          const windowState = data[stateKey];
-          
-          if (windowData) {
-            const { url, imageUrl } = windowData;
-            const minimized = windowState?.minimized || false;
-            
-            // 检查窗口是否已存在
-            const existingWindows = floatWindowManager.getActiveWindows();
-            if (!existingWindows.includes(windowId)) {
-              if (url) {
-                // 从storage恢复的窗口，如果没有imageUrl，可能是从popup进入的，显示模式切换按钮
-                floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, url, minimized, windowId, !imageUrl).catch(console.error);
-              } else if (imageUrl) {
-                // 从storage恢复的窗口，有imageUrl说明是从右键菜单（解码）进入的，不显示模式切换按钮
-                floatWindowManager.showQRCodeDecoderPanel(imageUrl, undefined, url, minimized, windowId, false).catch(console.error);
-              }
-            }
-          }
-        });
-      }
-    });
-    
-    sendResponse({ success: true });
   }
+  // [已禁用] 在别的 tab 里恢复悬浮窗：响应 background 的 SYNC_WINDOWS 消息
+  // else if (message.type === 'SYNC_WINDOWS') {
+  //   chrome.storage.local.get(['activeWindows'], async (result) => {
+  //     const activeWindows = result.activeWindows || [];
+  //     for (const windowId of activeWindows) {
+  //       const dataKey = `qrCodeWindowData_${windowId}`;
+  //       const stateKey = `qrCodeWindowState_${windowId}`;
+  //       chrome.storage.local.get([dataKey, stateKey], (data) => {
+  //         const windowData = data[dataKey];
+  //         const windowState = data[stateKey];
+  //         if (windowData) {
+  //           const { url, imageUrl } = windowData;
+  //           const minimized = windowState?.minimized || false;
+  //           const existingWindows = floatWindowManager.getActiveWindows();
+  //           if (!existingWindows.includes(windowId)) {
+  //             if (url) {
+  //               floatWindowManager.showQRCodeDecoderPanel(undefined, undefined, url, minimized, windowId, !imageUrl).catch(console.error);
+  //             } else if (imageUrl) {
+  //               floatWindowManager.showQRCodeDecoderPanel(imageUrl, undefined, url, minimized, windowId, false).catch(console.error);
+  //             }
+  //           }
+  //         }
+  //       });
+  //     }
+  //   });
+  //   sendResponse({ success: true });
+  //   return true;
+  // }
   return true;
   });
 } else {

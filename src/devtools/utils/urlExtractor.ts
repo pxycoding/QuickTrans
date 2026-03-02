@@ -1,6 +1,6 @@
 /**
  * URL提取器
- * 从response/request中提取所有URL
+ * 从 response/request 中提取所有 URL（含 http(s) 与相对路径如 /page/list?env=test）
  */
 
 export interface ExtractedUrl {
@@ -9,36 +9,56 @@ export interface ExtractedUrl {
   path?: string; // JSON路径（如果是body中的URL）
 }
 
+/** 判断字符串是否为相对路径（与 ContentDetector / QRCodeDecoder 规则一致） */
+function isRelativePath(s: string): boolean {
+  if (!s || !s.trim()) return false;
+  const t = s.trim();
+  const hasPathQuery = t.includes('?') && /^\/?[^\s?#]+(\?[^\s#]*)?$/.test(t);
+  const hasAbsolutePath = t.startsWith('/') && t.length > 1 && /^\/[^\s#]*$/.test(t);
+  const hasRelativePathNoSlash = !t.includes('?') && t.includes('/') && /^[^\s#?]+\/[^\s#]*$/.test(t);
+  return hasPathQuery || hasAbsolutePath || hasRelativePathNoSlash;
+}
+
 export class UrlExtractor {
   /**
-   * 从文本中提取所有URL
+   * 从文本中提取所有 URL（含 http(s) 与相对路径）
    */
   static extractFromText(text: string, source: 'request' | 'response' | 'body' = 'body'): ExtractedUrl[] {
     const urls: ExtractedUrl[] = [];
+    const seen = new Set<string>();
+
+    // 1. 提取 http(s) URL
     const urlPattern = /https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&/=]*)/g;
-    
     let match;
     while ((match = urlPattern.exec(text)) !== null) {
       try {
-        const url = new URL(match[0]);
-        urls.push({
-          url: match[0],
-          source
-        });
-      } catch (e) {
-        // 忽略无效URL
+        new URL(match[0]);
+        if (!seen.has(match[0])) {
+          seen.add(match[0]);
+          urls.push({ url: match[0], source });
+        }
+      } catch {
+        // 忽略无效 URL
       }
     }
 
-    // 去重
-    const uniqueUrls = new Map<string, ExtractedUrl>();
-    urls.forEach(u => {
-      if (!uniqueUrls.has(u.url)) {
-        uniqueUrls.set(u.url, u);
+    // 2. 提取相对路径：/path?query、path/path?query、/path、path/path（避免匹配到 http(s) 后的 path）
+    const relativePathPattern = /(?:^|[^\w./-])(\/(?:[\w.-]+\/)*[\w.-]+(?:\?[^\s"'<>#]*)?)|(?:^|[^\w./-])((?:[\w.-]+\/)+[\w.-]+(?:\?[^\s"'<>#]*)?)/g;
+    while ((match = relativePathPattern.exec(text)) !== null) {
+      const fullMatch = match[0];
+      const pathMatch = match[1] ?? match[2];
+      if (!pathMatch) continue;
+      const before = match.index > 0 ? text.substring(Math.max(0, match.index - 8), match.index) : '';
+      if (before.endsWith('https://') || before.endsWith('http://')) continue;
+      if (!seen.has(pathMatch)) {
+        seen.add(pathMatch);
+        if (isRelativePath(pathMatch)) {
+          urls.push({ url: pathMatch, source });
+        }
       }
-    });
+    }
 
-    return Array.from(uniqueUrls.values());
+    return urls;
   }
 
   /**
@@ -68,20 +88,19 @@ export class UrlExtractor {
       return urls;
     }
 
-    // 检查值本身是否是URL
+    // 检查值本身是否是 URL 或相对路径
     if (typeof obj === 'string') {
-      const urlPattern = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&/=]*)$/;
-      if (urlPattern.test(obj)) {
+      const trimmed = obj.trim();
+      const isHttp = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&/=]*)$/.test(trimmed);
+      if (isHttp) {
         try {
-          new URL(obj); // 验证URL有效性
-          urls.push({
-            url: obj,
-            source,
-            path: basePath
-          });
-        } catch (e) {
-          // 忽略无效URL
+          new URL(trimmed);
+          urls.push({ url: trimmed, source, path: basePath });
+        } catch {
+          // 忽略无效 URL
         }
+      } else if (isRelativePath(trimmed)) {
+        urls.push({ url: trimmed, source, path: basePath });
       }
     }
 

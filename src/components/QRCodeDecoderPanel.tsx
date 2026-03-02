@@ -5,8 +5,10 @@ import { ImageUpload } from './ImageUpload';
 import { QRCodeDecoder } from '../converters/QRCodeDecoder';
 import { QRCodeGenerator } from '../converters/QRCodeGenerator';
 import { QRCodeOptions, QueryParamConfig } from '../types';
+import { QrcodeOutlined } from '@ant-design/icons';
 import { DecodeIcon, XIcon, RefreshIcon, DownloadIcon, LinkIcon, PlusIcon, GenerateIcon } from './Icons';
 import { QueryParamConfigManager } from '../utils/QueryParamConfigManager';
+import { extractParamsFromUrl, applyParamsToUrl, parsePathAndQuery } from '../utils/urlQueryParse';
 import { useI18n } from '../i18n/useI18n';
 import './QRCodeDecoderPanel.css';
 
@@ -18,11 +20,51 @@ interface QRCodeDecoderPanelProps {
   minimized?: boolean;
   windowId?: string; // 窗口唯一ID，用于跨tab同步
   showModeSwitcher?: boolean; // 是否显示模式切换按钮，默认true（popup进入时显示，右键菜单进入时不显示）
+  /** 恢复时传入的窗口名称（刷新后恢复用） */
+  initialWindowName?: string;
+  /** 用户保存窗口名称时回调，用于刷新后恢复自定义名称 */
+  onWindowNameSave?: (name: string) => void;
+  /** 用户收起/展开窗口时回调，用于刷新后恢复展开状态 */
+  onMinimizedChange?: (minimized: boolean) => void;
+  /** 用户编辑链接/内容时回调，用于刷新后恢复 popup 内输入的内容 */
+  onUrlChange?: (url: string) => void;
+  /** 恢复时传入的 URL 参数勾选（刷新后恢复） */
+  initialSelectedParams?: string[];
+  /** 恢复时传入的常用参数勾选（刷新后恢复） */
+  initialSelectedCommonParams?: { key: string; value: string }[];
+  /** 恢复时传入的完整 URL 参数列表（刷新后 query 列表不丢未勾选项） */
+  initialUrlParams?: { key: string; value: string }[];
+  /** 用户修改参数勾选后回调；第三参为当前完整 params 列表，用于刷新后恢复 */
+  onParamSelectionChange?: (
+    selectedParams: string[],
+    selectedCommonParams: { key: string; value: string }[],
+    urlParams?: { key: string; value: string }[]
+  ) => void;
 }
 
 interface QueryParam {
   key: string;
   value: string;
+}
+
+const LOG = (tag: string, ...args: unknown[]) =>
+  console.log('[QRCodeDecoder]', tag, ...args);
+
+/** 从 URL 字符串同步解析出 query 参数（排除常用参数 key），用于即时用当前输入生成 URL，避免依赖尚未更新的 params 状态。支持相对路径如 /page/list?env=test */
+function getParamsFromUrl(url: string, commonParamKeys: Set<string>): QueryParam[] {
+  try {
+    const urlObj = new URL(url);
+    const list: QueryParam[] = [];
+    urlObj.searchParams.forEach((value, key) => {
+      if (!commonParamKeys.has(key)) list.push({ key, value });
+    });
+    LOG('getParamsFromUrl', { url: url.slice(0, 80), commonKeysSize: commonParamKeys.size, parsedCount: list.length, params: list });
+    return list;
+  } catch (e) {
+    const list = extractParamsFromUrl(url).filter(p => !commonParamKeys.has(p.key));
+    LOG('getParamsFromUrl (relative path)', { url: url.slice(0, 80), parsedCount: list.length, params: list });
+    return list;
+  }
 }
 
 interface QRCodeResult {
@@ -39,14 +81,28 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
   onClose,
   minimized: initialMinimized = false,
   windowId,
-  showModeSwitcher = true
+  showModeSwitcher = true,
+  initialWindowName,
+  onWindowNameSave,
+  onMinimizedChange,
+  onUrlChange,
+  initialSelectedParams,
+  initialSelectedCommonParams,
+  initialUrlParams,
+  onParamSelectionChange
 }) => {
   const { t } = useI18n();
+  const tRef = React.useRef(t);
+  tRef.current = t;
   const [result, setResult] = useState<QRCodeResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [editedUrl, setEditedUrl] = useState('');
+  const editedUrlRef = React.useRef(editedUrl);
+  editedUrlRef.current = editedUrl;
+  /** 是否已经处理过 directUrl 至少一次（首次从右键打开时勾选 query 参数，之后因常见参数等导致 url 变化时不再自动勾选） */
+  const hasProcessedDirectUrlOnceRef = React.useRef(false);
   const [initialUrl, setInitialUrl] = useState(''); // 保存初始链接用于复原
   const [currentQRCode, setCurrentQRCode] = useState(''); // 当前显示的二维码
   const [generating, setGenerating] = useState(false);
@@ -58,7 +114,7 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
   const [configs, setConfigs] = useState<QueryParamConfig[]>([]); // 用户配置的常用参数
   const [selectedCommonParams, setSelectedCommonParams] = useState<{key: string; value: string}[]>([]); // 选中的常用参数
   const [isMinimized, setIsMinimized] = useState(initialMinimized); // 窗口最小化状态
-  const [windowName, setWindowName] = useState<string>(''); // 窗口名称
+  const [windowName, setWindowName] = useState<string>(initialWindowName ?? ''); // 窗口名称（恢复时可由 initialWindowName 传入）
   const [isEditingName, setIsEditingName] = useState(false); // 是否正在编辑名称
   // 如果有传入的图片，默认使用解码模式，否则使用生成模式
   const [mode, setMode] = useState<'decode' | 'generate'>(
@@ -70,7 +126,10 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
   useEffect(() => {
     console.log('[QRCodeDecoderPanel] showModeSwitcher:', showModeSwitcher);
   }, [showModeSwitcher]);
-  
+
+  // 解码 effect 运行计数，用于日志区分多次触发
+  const decodeRunIdRef = React.useRef(0);
+
   // 使用useMemo包装options对象，避免依赖数组每次渲染都变化
   const options = useMemo<QRCodeOptions>(() => ({
     size: 256,
@@ -85,13 +144,26 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
   }, []);
 
   React.useEffect(() => {
+    const runId = ++decodeRunIdRef.current;
+    const fileToDecode = uploadedImageFile || imageFile;
+    const urlToDecode = !fileToDecode ? imageUrl : undefined;
+
+    console.log('[QRCodeDecoderPanel] decode effect run', {
+      runId,
+      hasFile: !!fileToDecode,
+      hasUrl: !!urlToDecode,
+      urlType: urlToDecode ? (urlToDecode.startsWith('data:') ? 'dataURL' : 'http') : null,
+      windowId,
+      deps: { uploadedImageFile: !!uploadedImageFile, imageUrl: !!imageUrl, imageFile: !!imageFile }
+    });
+
     const decode = async () => {
-      // 优先使用上传的文件，然后是传入的 imageFile，最后是 imageUrl
-      const fileToDecode = uploadedImageFile || imageFile;
-      const urlToDecode = !fileToDecode ? imageUrl : undefined;
+      if (!fileToDecode && !urlToDecode) {
+        console.log('[QRCodeDecoderPanel] decode skip (no source), runId:', runId);
+        return;
+      }
 
-      if (!fileToDecode && !urlToDecode) return;
-
+      console.log('[QRCodeDecoderPanel] setState: loading=true, error/result clear, runId:', runId);
       setLoading(true);
       setError('');
       setResult(null);
@@ -99,40 +171,87 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
       try {
         let decodeResult;
         if (fileToDecode) {
-          // 创建预览URL
           const url = URL.createObjectURL(fileToDecode);
           setPreviewUrl(url);
+          console.log('[QRCodeDecoderPanel] decodeFromFile start, runId:', runId);
           decodeResult = await QRCodeDecoder.decodeFromFile(fileToDecode);
+          console.log('[QRCodeDecoderPanel] decodeFromFile done', { runId, success: decodeResult?.success });
         } else if (urlToDecode) {
           setPreviewUrl(urlToDecode);
+          console.log('[QRCodeDecoderPanel] decodeFromURL start, runId:', runId);
           decodeResult = await QRCodeDecoder.decodeFromURL(urlToDecode);
+          console.log('[QRCodeDecoderPanel] decodeFromURL done', { runId, success: decodeResult?.success });
         }
 
+        if (decodeRunIdRef.current !== runId) {
+          console.log('[QRCodeDecoderPanel] decode stale run ignored (effect re-ran)', { runId, current: decodeRunIdRef.current });
+          return;
+        }
         if (decodeResult?.success) {
           setResult(decodeResult);
-          
-          // 保存窗口数据（基于窗口ID）
-          if (windowId) {
+          const content = decodeResult.content || '';
+          const isFromRightClick = !showModeSwitcher;
+          const isDecodedUrl = decodeResult.type === 'url';
+
+          if (isFromRightClick && isDecodedUrl && content) {
+            // 右键进入且解码结果为 URL：直接进入生成态，跳过「解码结果 + 使用此链接生成二维码」中间态
+            setMode('generate');
+            setEditedUrl(content);
+            setInitialUrl(content);
+            parseUrlParamsRef.current(content);
+            setGenerating(true);
+            try {
+              const qrResult = await QRCodeGenerator.generate(content, options);
+              setCurrentQRCode(qrResult.dataURL);
+              if (windowId) {
+                chrome.storage.local.set({
+                  [`qrCodeWindowData_${windowId}`]: {
+                    url: content,
+                    imageUrl: urlToDecode,
+                    imageFile: null
+                  }
+                });
+              }
+            } catch (e) {
+              console.error('[QRCodeDecoderPanel] 右键直入生成态时生成二维码失败', e);
+            } finally {
+              setGenerating(false);
+            }
+          } else if (windowId) {
             chrome.storage.local.set({
               [`qrCodeWindowData_${windowId}`]: {
                 url: null,
                 imageUrl: urlToDecode,
-                imageFile: null // 文件对象无法直接存储
+                imageFile: null
               }
             });
           }
         } else {
-          setError(decodeResult?.error || t('qrcode.decodeFailed'));
+          const errMsg = decodeResult?.error || tRef.current('qrcode.decodeFailed');
+          console.log('[QRCodeDecoderPanel] setState: error (decode fail)', { runId, errMsg });
+          setError(errMsg);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : t('qrcode.decodeFailed'));
+        if (decodeRunIdRef.current !== runId) {
+          console.log('[QRCodeDecoderPanel] decode stale run ignored in catch', { runId });
+          return;
+        }
+        const errMsg = err instanceof Error ? err.message : tRef.current('qrcode.decodeFailed');
+        console.log('[QRCodeDecoderPanel] setState: error (exception)', { runId, errMsg });
+        setError(errMsg);
       } finally {
+        if (decodeRunIdRef.current !== runId) {
+          console.log('[QRCodeDecoderPanel] decode stale run skipped setLoading(false)', { runId, current: decodeRunIdRef.current });
+          return;
+        }
+        console.log('[QRCodeDecoderPanel] setState: loading=false, runId:', runId);
         setLoading(false);
       }
     };
 
     decode();
-  }, [uploadedImageFile, imageUrl, imageFile, windowId, t]);
+    // 不依赖 t：t 在父组件重渲染时引用会变，会导致 effect 重复执行、出现闪动；用 tRef.current 取最新文案即可
+  }, [uploadedImageFile, imageUrl, imageFile, windowId]);
 
   React.useEffect(() => {
     return () => {
@@ -151,21 +270,19 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
     loadConfigs();
   }, []);
 
-  // 加载窗口状态和名称（基于窗口ID）
+  // 加载窗口状态和名称（基于窗口ID；恢复时优先使用 initialWindowName）
   useEffect(() => {
     if (!windowId) return;
 
     const stateKey = `qrCodeWindowState_${windowId}`;
     const nameKey = `qrCodeWindowName_${windowId}`;
     
-    // 加载保存的窗口状态和名称
     chrome.storage.local.get([stateKey, nameKey], (result) => {
       if (result[stateKey]) {
         setIsMinimized(result[stateKey].minimized || false);
       }
-      if (result[nameKey]) {
-        setWindowName(result[nameKey]);
-      }
+      const name = initialWindowName ?? result[nameKey] ?? '';
+      if (name) setWindowName(name);
     });
 
     // 监听窗口状态变化（用于跨标签页同步）
@@ -193,58 +310,100 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
     };
   }, [windowId]);
 
-  // 解析URL参数 - 实现非用户常用参数的追加操作
-  const parseUrlParams = useCallback((url: string) => {
+  // 用户编辑链接时防抖回写快照（popup 内输入后刷新可恢复）
+  const URL_SYNC_DEBOUNCE_MS = 500;
+  useEffect(() => {
+    if (!onUrlChange || !windowId) return;
+    const timer = window.setTimeout(() => {
+      onUrlChange(editedUrl);
+    }, URL_SYNC_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [editedUrl, onUrlChange, windowId]);
+
+  // 恢复时应用保存的完整参数列表与勾选状态（仅应用一次），避免刷新后未勾选参数从 query 列表消失
+  const appliedInitialParamSelectionRef = React.useRef(false);
+  useEffect(() => {
+    const hasInitial =
+      initialUrlParams !== undefined ||
+      initialSelectedParams !== undefined ||
+      initialSelectedCommonParams !== undefined;
+    if (!hasInitial || appliedInitialParamSelectionRef.current) return;
+    appliedInitialParamSelectionRef.current = true;
+    if (initialUrlParams !== undefined && initialUrlParams.length > 0) {
+      setParams(initialUrlParams);
+    }
+    if (initialSelectedParams !== undefined) {
+      const valid =
+        initialUrlParams && initialUrlParams.length > 0
+          ? initialSelectedParams.filter((k) => initialUrlParams.some((p) => p.key === k))
+          : initialSelectedParams;
+      setSelectedParams(valid);
+    }
+    if (initialSelectedCommonParams !== undefined) {
+      setSelectedCommonParams(initialSelectedCommonParams);
+    }
+  }, [initialUrlParams, initialSelectedParams, initialSelectedCommonParams]);
+
+  // 参数勾选变化时防抖回写快照（含完整 params 列表，刷新后 query 列表不丢项）
+  const PARAM_SYNC_DEBOUNCE_MS = 400;
+  useEffect(() => {
+    if (!onParamSelectionChange || !windowId) return;
+    const timer = window.setTimeout(() => {
+      onParamSelectionChange(selectedParams, selectedCommonParams, params);
+    }, PARAM_SYNC_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [selectedParams, selectedCommonParams, params, onParamSelectionChange, windowId]);
+
+  // 解析URL参数 - 实现非用户常用参数的追加操作（会更新 params / selectedParams 状态，query 列表依赖这里）
+  // skipSelectParams：仅合并到列表、不自动勾选（用于 directUrl 初次加载，避免「点常见参数」导致 query 参数被自动勾选）
+  const parseUrlParams = useCallback((url: string, options?: { skipSelectParams?: boolean }) => {
+    const { skipSelectParams = false } = options ?? {};
+    const commonParamKeys = new Set<string>();
+    configs.flatMap(config => config.params).forEach(param => commonParamKeys.add(param.key));
+    selectedCommonParams.forEach(param => commonParamKeys.add(param.key));
+    initialSelectedCommonParams?.forEach(param => commonParamKeys.add(param.key));
+
+    let newParams: QueryParam[] = [];
     try {
       const urlObj = new URL(url);
-      const newParams: QueryParam[] = [];
-      const newParamKeys: string[] = [];
-      
-      // 获取所有常用参数的key集合
-      const commonParamKeys = new Set(
-        configs.flatMap(config => config.params).map(param => param.key)
-      );
-      
-      // 解析URL中的参数
       urlObj.searchParams.forEach((value, key) => {
         newParams.push({ key, value });
-        newParamKeys.push(key);
       });
-      
-      // 合并现有参数和新参数，避免重复
-      setParams(prevParams => {
-        const existingParamKeys = new Set(prevParams.map(param => param.key));
-        const mergedParams = [...prevParams];
-        
-        // 只添加新的、非用户常用的参数
-        newParams.forEach(param => {
-          if (!existingParamKeys.has(param.key) && !commonParamKeys.has(param.key)) {
-            mergedParams.push(param);
-          }
-        });
-        
-        return mergedParams;
+    } catch {
+      newParams = extractParamsFromUrl(url);
+    }
+
+    if (newParams.length === 0 && !url.includes('?')) return;
+
+    LOG('parseUrlParams called', { url: url.slice(0, 80), newParams, commonParamKeys: [...commonParamKeys], skipSelectParams });
+    setParams(prevParams => {
+      const existingParamKeys = new Set(prevParams.map(param => param.key));
+      const mergedParams = [...prevParams];
+      newParams.forEach(param => {
+        if (!existingParamKeys.has(param.key) && !commonParamKeys.has(param.key)) {
+          mergedParams.push(param);
+        }
       });
-      
-      // 更新选中的参数，保持现有选择状态并添加新的参数
+      LOG('parseUrlParams setParams', { prevLen: prevParams.length, mergedLen: mergedParams.length, merged: mergedParams });
+      return mergedParams;
+    });
+    if (!skipSelectParams) {
       setSelectedParams(prevSelected => {
         const existingSelected = new Set(prevSelected);
         const updatedSelected = [...prevSelected];
-        
-        // 只添加新的、非用户常用的参数到选中状态
         newParams.forEach(param => {
           if (!existingSelected.has(param.key) && !commonParamKeys.has(param.key)) {
             updatedSelected.push(param.key);
           }
         });
-        
+        LOG('parseUrlParams setSelectedParams', { prev: prevSelected, updated: updatedSelected });
         return updatedSelected;
       });
-    } catch (error) {
-      console.error('URL参数解析失败:', error);
-      // 解析失败时不清空参数，保持现有状态
     }
-  }, [configs]);
+  }, [configs, selectedCommonParams, initialSelectedCommonParams]);
+
+  const parseUrlParamsRef = React.useRef(parseUrlParams);
+  parseUrlParamsRef.current = parseUrlParams;
 
   // URL验证函数
   const validateUrl = useCallback((url: string) => {
@@ -313,33 +472,36 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
     return true;
   }, []);
 
-  // 基于选中的参数生成URL
-  const generateUrlFromParams = useCallback((baseUrl: string, selectedKeys: string[]) => {
-    try {
-      const urlObj = new URL(baseUrl);
-      
-      // 移除所有参数
-      urlObj.search = '';
-      
-      // 添加选中的URL参数
-      params.forEach(param => {
-        if (selectedKeys.includes(param.key)) {
-          urlObj.searchParams.append(param.key, param.value);
+  const generateUrlFromParams = useCallback(
+    (baseUrl: string, selectedKeys: string[], paramsOverride?: QueryParam[]) => {
+      const commonKeys = new Set(selectedCommonParams.map((p) => p.key));
+      const paramsToUse = paramsOverride ?? params;
+      const selectedParamsList: QueryParam[] = [];
+      paramsToUse.forEach(param => {
+        if (selectedKeys.includes(param.key) && !commonKeys.has(param.key)) {
+          selectedParamsList.push(param);
         }
       });
-      
-      // 添加选中的常用参数
-      selectedCommonParams.forEach(param => {
-        // 避免重复添加相同的参数（如果URL中已存在同名参数，会覆盖）
-        urlObj.searchParams.append(param.key, param.value);
-      });
-      
-      return urlObj.toString();
-    } catch (error) {
-      console.error('基于参数生成URL失败:', error);
-      return baseUrl;
-    }
-  }, [params, selectedCommonParams]);
+      selectedCommonParams.forEach(param => selectedParamsList.push(param));
+
+      try {
+        const urlObj = new URL(baseUrl);
+        urlObj.search = '';
+        selectedParamsList.forEach(param => {
+          urlObj.searchParams.set(param.key, param.value);
+        });
+        const out = urlObj.toString();
+        LOG('generateUrlFromParams result', { outLen: out.length, preview: out.slice(0, 80) });
+        return out;
+      } catch (error) {
+        const pathname = parsePathAndQuery(baseUrl).pathname;
+        const out = applyParamsToUrl(pathname, selectedParamsList);
+        LOG('generateUrlFromParams (relative path)', { pathname: pathname.slice(0, 60), outPreview: out.slice(0, 80) });
+        return out;
+      }
+    },
+    [params, selectedCommonParams]
+  );
 
   // 解析URL并生成二维码
   const parseUrlAndGenerateQRCode = useCallback(async (url: string) => {
@@ -376,16 +538,18 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
 
   // 当直接提供URL时，解析并生成二维码
   useEffect(() => {
-    // 如果 directUrl 存在（包括空字符串），初始化输入框
+    LOG('effect directUrl', { directUrl: directUrl?.slice(0, 60), hasDirectUrl: directUrl !== undefined });
     if (directUrl !== undefined) {
       if (directUrl && directUrl.trim()) {
-        // 直接解析URL并生成二维码，不设置result对象
         const processDirectUrl = async () => {
           const url = directUrl.trim();
           if (validateUrl(url)) {
+            const isFirstRun = !hasProcessedDirectUrlOnceRef.current;
+            if (isFirstRun) hasProcessedDirectUrlOnceRef.current = true;
+            LOG('processDirectUrl', { url: url.slice(0, 80), isFirstRun });
             setInitialUrl(url);
             setEditedUrl(url);
-            parseUrlParams(url);
+            parseUrlParams(url, isFirstRun ? undefined : { skipSelectParams: true });
             
             setGenerating(true);
             try {
@@ -419,14 +583,13 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
     }
   }, [directUrl, validateUrl, parseUrlParams, options, imageUrl, windowId]);
 
-  // 当窗口关闭时清除存储（基于窗口ID）
+  // 当窗口关闭时清除存储（基于窗口ID）。不删除 position/size，供刷新后恢复同位置用；用户主动关闭时由 FloatWindowManager.close 清除
   useEffect(() => {
     return () => {
       if (windowId) {
         chrome.storage.local.remove([
           `qrCodeWindowData_${windowId}`,
           `qrCodeWindowState_${windowId}`,
-          `floatWindowPosition_${windowId}`,
           `qrCodeWindowName_${windowId}`
         ]);
       }
@@ -445,60 +608,43 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
   // 处理URL编辑框的变化
   const handleUrlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newUrl = e.target.value;
+    LOG('handleUrlChange', { len: newUrl.length, preview: newUrl.slice(0, 80) });
     setEditedUrl(newUrl);
-    // 验证URL
     validateUrl(newUrl);
   };
 
-  // 处理参数选择变化
+  // 处理参数选择变化：只更新 selectedParams，由 effect 统一调用 updateUrlWithParams，避免重复调用与竞态
   const handleParamChange = (paramKey: string) => {
     setSelectedParams(prev => {
-      let newSelectedParams: string[];
       if (prev.includes(paramKey)) {
-        newSelectedParams = prev.filter(key => key !== paramKey);
-      } else {
-        newSelectedParams = [...prev, paramKey];
+        return prev.filter(key => key !== paramKey);
       }
-      
-      // 实时更新链接
-      updateUrlWithParams(newSelectedParams);
-      
-      return newSelectedParams;
+      return [...prev, paramKey];
     });
   };
 
   // 处理全选/取消全选
   const handleToggleAllParams = () => {
-    let newSelectedParams: string[];
     if (selectedParams.length === params.length) {
-      newSelectedParams = [];
+      setSelectedParams([]);
     } else {
-      newSelectedParams = params.map(param => param.key);
+      setSelectedParams(params.map(param => param.key));
     }
-    
-    // 实时更新链接
-    updateUrlWithParams(newSelectedParams);
-    
-    setSelectedParams(newSelectedParams);
   };
 
-  // 生成二维码
   const generateQRCode = async () => {
     const url = editedUrl;
+    LOG('generateQRCode', { url: url.slice(0, 80), selectedParams });
     if (!url.trim()) return;
-    
-    // 1. 先解析URL参数
     parseUrlParams(url);
-    
-    // 2. 基于当前选择的参数重新生成URL（包括URL参数和常用参数）
-    const generatedUrl = generateUrlFromParams(url, selectedParams);
-    
-    // 3. 验证URL
-    if (!validateUrl(generatedUrl)) {
-      return;
-    }
-    
-    // 4. 更新编辑框中的URL
+    const commonKeys = new Set<string>();
+    configs.flatMap((c) => c.params).forEach((p) => commonKeys.add(p.key));
+    selectedCommonParams.forEach((p) => commonKeys.add(p.key));
+    initialSelectedCommonParams?.forEach((p) => commonKeys.add(p.key));
+    const urlParams = getParamsFromUrl(url, commonKeys);
+    const generatedUrl = generateUrlFromParams(url, selectedParams, urlParams);
+    LOG('generateQRCode generated', { generatedUrl: generatedUrl.slice(0, 80) });
+    if (!validateUrl(generatedUrl)) return;
     setEditedUrl(generatedUrl);
     
     setGenerating(true);
@@ -519,45 +665,53 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
 
   // 移除自动更新二维码的逻辑，改为用户点击生成时更新
 
-  // 更新URL并验证 - 用于参数变化时实时更新链接
-  const updateUrlWithParams = useCallback(async (selectedParams: string[]) => {
-    if (!editedUrl.trim()) return;
-    
-    // 基于当前选择的参数重新生成URL
-    const generatedUrl = generateUrlFromParams(editedUrl, selectedParams);
-    
-    // 验证URL
-    validateUrl(generatedUrl);
-    
-    // 更新编辑框中的URL
-    setEditedUrl(generatedUrl);
-    
-    // 重新生成二维码
-    setGenerating(true);
-    try {
-      // 使用新生成的URL生成二维码
-      const result = await QRCodeGenerator.generate(generatedUrl, options);
-      setCurrentQRCode(result.dataURL);
-      // 清除之前的错误信息
-      setValidationError('');
-      
-      // 移除parseUrlParams调用，避免无限循环
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : t('qrcode.generateFailed');
-      console.error('二维码生成失败:', error);
-      setValidationError(errorMsg);
-    } finally {
-      setGenerating(false);
-    }
-  }, [editedUrl, generateUrlFromParams, validateUrl, options]);
+  // 更新URL并验证 - 仅由「勾选参数/常用参数」变化触发；内部读 editedUrlRef 避免因 editedUrl 变化导致 effect 在用户输入时跑一遍把未输完的 ? 清掉
+  const updateUrlWithParams = useCallback(
+    async (selectedParamsList: string[]) => {
+      const currentUrl = editedUrlRef.current.trim();
+      LOG('updateUrlWithParams entry', { currentUrl: currentUrl.slice(0, 80), selectedParamsList, paramsLen: params.length });
+      if (!currentUrl) return;
+      // 用 state 的 params（完整列表）作为生成来源，这样勾选列表里已有但当前 URL 没有的项也能被加进链接；取消时 keysToInclude 直接用 selectedParamsList，空即不加
+      const keysToInclude = selectedParamsList;
+      const paramsToUse = params;
+      LOG('updateUrlWithParams', { keysToInclude, paramsToUseLen: paramsToUse.length });
+      const generatedUrl = generateUrlFromParams(currentUrl, keysToInclude, paramsToUse);
+      LOG('updateUrlWithParams setEditedUrl', { generatedUrl: generatedUrl.slice(0, 80) });
 
-  // 监听常用参数变化，实时更新链接
+      validateUrl(generatedUrl);
+      setEditedUrl(generatedUrl);
+
+      setGenerating(true);
+      try {
+        const result = await QRCodeGenerator.generate(generatedUrl, options);
+        setCurrentQRCode(result.dataURL);
+        setValidationError('');
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : t('qrcode.generateFailed');
+        console.error('二维码生成失败:', error);
+        setValidationError(errorMsg);
+      } finally {
+        setGenerating(false);
+      }
+    },
+    [params, generateUrlFromParams, validateUrl, options, configs, selectedCommonParams, initialSelectedCommonParams]
+  );
+
+  // 仅当用户勾选/取消勾选参数或常用参数时重新生成链接（updateUrlWithParams 内部读 editedUrlRef，不依赖 editedUrl，故输入时不会触发）
   useEffect(() => {
-    // 使用立即执行函数处理async逻辑
+    LOG('effect updateUrlWithParams trigger', { selectedParams, selectedCommonParamsLen: selectedCommonParams.length });
     (async () => {
       await updateUrlWithParams(selectedParams);
     })();
   }, [selectedCommonParams, selectedParams, updateUrlWithParams]);
+
+  // 仅失焦或回车时：参数校验、query 解析、并间接触发二维码生成（parseUrlParams 会更新 selectedParams，进而触发 effect 里的 updateUrlWithParams）
+  const handleUrlCommit = useCallback(() => {
+    if (!editedUrl.trim()) return;
+    LOG('url commit (blur/Enter)', { editedUrl: editedUrl.slice(0, 80) });
+    validateUrl(editedUrl);
+    parseUrlParams(editedUrl);
+  }, [editedUrl, validateUrl, parseUrlParams]);
 
   // 下载二维码
   const downloadQRCode = async () => {
@@ -601,26 +755,22 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
   // 处理窗口最小化
   const handleMinimize = () => {
     setIsMinimized(true);
-    // 保存最小化状态到存储（基于窗口ID）
     if (windowId) {
       chrome.storage.local.set({
-        [`qrCodeWindowState_${windowId}`]: {
-          minimized: true
-        }
+        [`qrCodeWindowState_${windowId}`]: { minimized: true }
       });
+      onMinimizedChange?.(true);
     }
   };
 
   // 处理窗口展开
   const handleExpand = () => {
     setIsMinimized(false);
-    // 保存展开状态到存储（基于窗口ID）
     if (windowId) {
       chrome.storage.local.set({
-        [`qrCodeWindowState_${windowId}`]: {
-          minimized: false
-        }
+        [`qrCodeWindowState_${windowId}`]: { minimized: false }
       });
+      onMinimizedChange?.(false);
     }
   };
 
@@ -629,14 +779,15 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
     setWindowName(newName);
   };
 
-  // 处理名称保存（完成编辑时）
-  const handleNameSave = () => {
+  // 处理名称保存（失焦或按 Enter 时调用，传入当前编辑好的名称）
+  const handleNameSave = (name: string) => {
+    setWindowName(name);
     setIsEditingName(false);
-    // 保存名称到存储
     if (windowId) {
       chrome.storage.local.set({
-        [`qrCodeWindowName_${windowId}`]: windowName
+        [`qrCodeWindowName_${windowId}`]: name
       });
+      onWindowNameSave?.(name);
     }
   };
 
@@ -661,9 +812,9 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
     }
   };
 
-  // 生成默认标题
+  // 生成默认标题（使用 Ant Design 二维码图标）
   const defaultTitle = (
-    <><GenerateIcon size={18} /> {t('qrcode.convertTitle')}</>
+    <><QrcodeOutlined style={{ fontSize: 18, marginRight: 6 }} /> {t('qrcode.convertTitle')}</>
   );
 
   return (
@@ -747,10 +898,13 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
         {/* 解码模式 */}
         {mode === 'decode' && (
           <div className="decode-section">
-            <ImageUpload
-              onImageSelect={handleImageUpload}
-              className="decode-image-upload"
-            />
+            {/* 从右键/外部传入图片时不显示上传模块 */}
+            {!imageUrl && !imageFile && (
+              <ImageUpload
+                onImageSelect={handleImageUpload}
+                className="decode-image-upload"
+              />
+            )}
             {previewUrl && (
               <div className="preview-section">
                 <img src={previewUrl} alt="QR Code Preview" />
@@ -795,6 +949,13 @@ export const QRCodeDecoderPanel: React.FC<QRCodeDecoderPanelProps> = ({
                       <textarea
                         value={editedUrl}
                         onChange={handleUrlChange}
+                        onBlur={handleUrlCommit}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleUrlCommit();
+                          }
+                        }}
                         rows={3}
                         placeholder={t('qrcode.editLink')}
                       />

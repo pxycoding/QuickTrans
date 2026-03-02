@@ -67,7 +67,7 @@ export class ContentDetector {
       }
     }
 
-    // 4. 检测 URL
+    // 4. 检测 URL（含 http(s) 与相对路径 /path 或 path?query）
     const urlPattern = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9()@:%_\+.~#?&/=]*)$/;
     if (urlPattern.test(text)) {
       try {
@@ -85,6 +85,19 @@ export class ContentDetector {
       } catch (e) {
         console.log('[ContentDetector] URL 解析失败:', e);
       }
+    }
+
+    // 5. 检测相对路径（/page/list?env=test、page/list?env=test、/page/list、page/list），用于原生应用路径 → 显示「生成二维码」
+    const hasPathQuery = text.includes('?') && /^\/?[^\s?#]+(\?[^\s#]*)?$/.test(text);
+    const hasAbsolutePath = text.startsWith('/') && text.length > 1 && /^\/[^\s#]*$/.test(text);
+    const hasRelativePathNoSlash = !text.includes('?') && text.includes('/') && /^[^\s#?]+\/[^\s#]*$/.test(text);
+    if (hasPathQuery || hasAbsolutePath || hasRelativePathNoSlash) {
+      console.log('[ContentDetector] ✅ 识别为相对路径/URL:', text.slice(0, 60));
+      return {
+        type: ContentType.URL,
+        value: text,
+        confidence: 0.85
+      };
     }
 
     console.log('[ContentDetector] ❌ 未识别的内容类型');

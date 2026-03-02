@@ -43,140 +43,161 @@ chrome.storage.onChanged.addListener((changes, namespace) => {
   }
 });
 
-// 同步所有活动窗口到指定tab
-const syncWindowsToTab = (tabId: number) => {
-  chrome.storage.local.get(['activeWindows'], (result) => {
-    const activeWindows = result.activeWindows || [];
-    if (activeWindows.length > 0) {
-      // 发送同步消息到content script
-      chrome.tabs.sendMessage(tabId, {
-        type: 'SYNC_WINDOWS',
-        payload: {}
-      }).catch(() => {
-        // 忽略错误（可能是content script还未加载）
-      });
-    }
-  });
-};
+// [已禁用] 在别的 tab 里恢复悬浮窗：同步活动窗口到指定 tab
+// const syncWindowsToTab = (tabId: number) => {
+//   chrome.storage.local.get(['activeWindows'], (result) => {
+//     const activeWindows = result.activeWindows || [];
+//     if (activeWindows.length > 0) {
+//       chrome.tabs.sendMessage(tabId, { type: 'SYNC_WINDOWS', payload: {} }).catch(() => {});
+//     }
+//   });
+// };
 
 // 监听标签页创建事件
-chrome.tabs.onCreated.addListener((tab) => {
-  if (tab.id) {
-    // 等待content script加载后再同步
-    setTimeout(() => {
-      syncWindowsToTab(tab.id!);
-    }, 500);
-  }
+chrome.tabs.onCreated.addListener((_tab) => {
+  // [已禁用] 新 tab 创建时不再同步悬浮窗
+  // if (tab.id) {
+  //   setTimeout(() => syncWindowsToTab(tab.id!), 500);
+  // }
 });
 
 // 监听标签页更新事件（页面加载完成时）
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+chrome.tabs.onUpdated.addListener((_tabId, changeInfo) => {
   if (changeInfo.status === 'complete') {
-    // 同步所有活动窗口
-    syncWindowsToTab(tabId);
+    // [已禁用] 页面加载完成时不再同步悬浮窗
+    // syncWindowsToTab(tabId);
   }
 });
 
 // 监听标签页激活事件（切换tab时）
 chrome.tabs.onActivated.addListener((activeInfo) => {
-  // 同步所有活动窗口到新激活的tab
-  syncWindowsToTab(activeInfo.tabId);
+  // [已禁用] 切换 tab 时不再同步悬浮窗
+  // syncWindowsToTab(activeInfo.tabId);
+  applyContextMenuForTab(activeInfo.tabId);
 });
 
-// 创建右键菜单
+chrome.tabs.onRemoved.addListener((tabId) => {
+  contextMenuStateByTab.delete(tabId);
+});
+
+const LOG = (msg: string, data?: object) => {
+  console.log('[QuickTrans ContextMenu]', msg, data ?? '');
+};
+
+/** 每个 tab 的选中类型，用于「选中文字」单菜单的标题与点击行为 */
+const contextMenuStateByTab = new Map<number, { isTimestamp: boolean; isURL: boolean }>();
+
+function getSelectionMenuTitle(state: { isTimestamp: boolean; isURL: boolean } | undefined): string {
+  const t = getTranslations(getLocale());
+  if (!state) return t.contextMenu.convertTimestamp;
+  if (state.isTimestamp) return t.contextMenu.convertTimestamp;
+  if (state.isURL) return t.contextMenu.generateQRCode;
+  return t.contextMenu.convertTimestamp;
+}
+
+function applyContextMenuForTab(tabId: number) {
+  const state = contextMenuStateByTab.get(tabId);
+  const title = getSelectionMenuTitle(state);
+  chrome.contextMenus.update('quicktrans-selection', { title });
+  LOG('applyContextMenuForTab', { tabId, title, state });
+}
+
+// 创建右键菜单：仅 2 个一级项（图片 1 个 + 选中文字 1 个），避免 Chrome 将多项收在「QuickTrans」下
 chrome.runtime.onInstalled.addListener(async () => {
-  // 先清除所有现有菜单项，确保没有遗留的父菜单
   await chrome.contextMenus.removeAll();
-  
+  contextMenuStateByTab.clear();
   const locale = getLocale();
   const translations = getTranslations(locale);
-  
-  // 二维码识别菜单（一级菜单）
+
   chrome.contextMenus.create({
     id: 'decode-qrcode',
     title: translations.contextMenu.decodeQRCode,
     contexts: ['image']
   });
-  
-  // 时间戳转换菜单（一级菜单）
   chrome.contextMenus.create({
-    id: 'convert-timestamp',
+    id: 'quicktrans-selection',
     title: translations.contextMenu.convertTimestamp,
     contexts: ['selection']
   });
-  
-  // 生成二维码菜单（一级菜单）
-  chrome.contextMenus.create({
-    id: 'generate-qrcode',
-    title: translations.contextMenu.generateQRCode,
-    contexts: ['selection']
-  });
+  LOG('onInstalled: 菜单已创建（仅 2 项，选中文字为单菜单动态标题）', { locale, ids: ['decode-qrcode', 'quicktrans-selection'] });
 });
+
+// 将图片 URL 拉取并转为 data URL，避免 content 里跨域导致一直 loading
+async function fetchImageAsDataUrl(srcUrl: string): Promise<string | null> {
+  try {
+    const res = await fetch(srcUrl, { mode: 'cors' });
+    if (!res.ok) return null;
+    const blob = await res.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
+}
 
 // 处理右键菜单点击
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+  LOG('onClicked', { menuItemId: info.menuItemId, tabId: tab?.id, hasSrcUrl: !!info.srcUrl, selectionPreview: info.selectionText?.slice(0, 30) });
+
   if (info.menuItemId === 'decode-qrcode' && info.srcUrl && tab?.id) {
-    // 发送消息到content script
     try {
+      const imageUrl = await fetchImageAsDataUrl(info.srcUrl);
       await chrome.tabs.sendMessage(tab.id, {
         type: 'DECODE_QRCODE',
-        payload: {
-          imageUrl: info.srcUrl
-        }
+        payload: { imageUrl: imageUrl || info.srcUrl }
       });
+      LOG('已发送 DECODE_QRCODE', { tabId: tab.id });
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error('[QuickTrans ContextMenu] send DECODE_QRCODE failed:', error);
     }
-  } else if ((info.menuItemId === 'convert-timestamp' || info.menuItemId === 'generate-qrcode') && info.selectionText && tab?.id) {
-    // 发送消息到content script进行类型检测和处理
+  } else if (info.menuItemId === 'quicktrans-selection' && info.selectionText && tab?.id) {
+    const state = contextMenuStateByTab.get(tab.id);
+    const type = state?.isURL ? 'GENERATE_QRCODE' : 'CONVERT_TIMESTAMP';
     try {
-      await chrome.tabs.sendMessage(tab.id, {
-        type: info.menuItemId === 'convert-timestamp' ? 'CONVERT_TIMESTAMP' : 'GENERATE_QRCODE',
-        payload: {
-          selectionText: info.selectionText
-        }
-      });
+      await chrome.tabs.sendMessage(tab.id, { type, payload: { selectionText: info.selectionText } });
+      LOG('已发送消息到 content', { type, tabId: tab.id, state });
     } catch (error) {
-      console.error('Failed to send message:', error);
+      console.error('[QuickTrans ContextMenu] send message failed:', error);
     }
   }
 });
 
-// 监听选中文本变化，用于动态更新右键菜单
+// 监听选中文本变化，用于动态更新右键菜单（只更新单菜单标题）；并供 content 获取当前 tab id
 chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
-  if (message.type === 'UPDATE_CONTEXT_MENU' && sender.tab) {
+  if (message.type === 'GET_TAB_ID') {
+    sendResponse({ tabId: sender.tab?.id ?? null });
+    return false;
+  }
+  if (message.type === 'UPDATE_CONTEXT_MENU' && sender.tab?.id != null) {
     const { isTimestamp, isURL } = message.payload;
-    
-    // 根据内容类型更新菜单可见性
-    if (isTimestamp) {
-      // 检测到时间戳，只显示转换菜单
-      chrome.contextMenus.update('convert-timestamp', { visible: true });
-      chrome.contextMenus.update('generate-qrcode', { visible: false });
-    } else if (isURL) {
-      // 检测到URL，只显示二维码生成菜单
-      chrome.contextMenus.update('convert-timestamp', { visible: false });
-      chrome.contextMenus.update('generate-qrcode', { visible: true });
-    } else {
-      // 未检测到特定类型，显示所有菜单
-      chrome.contextMenus.update('convert-timestamp', { visible: true });
-      chrome.contextMenus.update('generate-qrcode', { visible: true });
+    const tabId = sender.tab.id;
+    contextMenuStateByTab.set(tabId, { isTimestamp, isURL });
+    LOG('UPDATE_CONTEXT_MENU', { tabId, isTimestamp, isURL });
+
+    const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (activeTab?.id === tabId) {
+      applyContextMenuForTab(tabId);
     }
-    
     sendResponse({ success: true });
   } else if (message.type === 'UPDATE_CONTEXT_MENU_LOCALE') {
-    // 更新右键菜单语言
     const { locale } = message.payload;
-    // 确保 i18n 已初始化
+    LOG('UPDATE_CONTEXT_MENU_LOCALE', { locale });
     await initI18n();
     const translations = getTranslations(locale);
-    
     try {
       chrome.contextMenus.update('decode-qrcode', { title: translations.contextMenu.decodeQRCode });
-      chrome.contextMenus.update('convert-timestamp', { title: translations.contextMenu.convertTimestamp });
-      chrome.contextMenus.update('generate-qrcode', { title: translations.contextMenu.generateQRCode });
+      const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const state = activeTab?.id ? contextMenuStateByTab.get(activeTab.id) : undefined;
+      const selTitle = state?.isURL ? translations.contextMenu.generateQRCode : translations.contextMenu.convertTimestamp;
+      chrome.contextMenus.update('quicktrans-selection', { title: selTitle });
+      LOG('菜单语言已更新', { locale });
       sendResponse({ success: true });
     } catch (error) {
-      console.error('[Background] 更新右键菜单语言失败:', error);
+      console.error('[QuickTrans ContextMenu] 更新菜单语言失败:', error);
       sendResponse({ success: false });
     }
   }

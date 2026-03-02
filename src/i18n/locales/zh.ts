@@ -205,7 +205,8 @@ export const zh = {
     relative: '相对时间',
     actions: '操作',
     adjust: '调整',
-    copy: '复制'
+    copy: '复制',
+    restore: '复原'
   }
 };
 
