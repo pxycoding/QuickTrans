@@ -60,13 +60,15 @@ export class FloatWindowManager {
   private ensureContainer(windowId: string): HTMLElement {
     const containerId = `qa-booster-root-${windowId}`;
     let container = document.getElementById(containerId);
-    
+
     if (!container) {
       container = document.createElement('div');
       container.id = containerId;
+      // 为样式隔离添加统一 class，所有扩展 UI 都挂在该类下
+      container.classList.add('qa-booster-root');
       document.body.appendChild(container);
     }
-    
+
     return container;
   }
 

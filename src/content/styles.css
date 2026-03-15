@@ -1,5 +1,5 @@
-/* 操作按钮样式 */
-.qa-action-button {
+/* 操作按钮样式（仅在扩展根节点内生效） */
+.qa-booster-root .qa-action-button {
   background: var(--qa-primary-color);
   color: white;
   border: none;
@@ -15,18 +15,18 @@
     sans-serif;
 }
 
-.qa-action-button:hover {
+.qa-booster-root .qa-action-button:hover {
   background: #40a9ff;
   transform: translateY(-1px);
   box-shadow: var(--qa-shadow-lg);
 }
 
-.qa-action-button:active {
+.qa-booster-root .qa-action-button:active {
   transform: translateY(0);
 }
 
-/* 确保悬浮窗在最上层 */
-#qa-booster-root {
+/* 确保悬浮窗在最上层（扩展根容器） */
+.qa-booster-root {
   position: fixed;
   top: 0;
   left: 0;
@@ -36,7 +36,7 @@
   z-index: 2147483647;
 }
 
-#qa-booster-root > * {
+.qa-booster-root > * {
   pointer-events: all;
 }
 

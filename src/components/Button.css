@@ -1,5 +1,5 @@
-/* 覆盖全局 button:hover 样式，去除绿色 */
-button:hover {
+/* 覆盖扩展内按钮 hover 样式，去除绿色 */
+.qa-btn:hover {
   color: inherit !important;
 }
 
